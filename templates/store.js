@@ -167,7 +167,7 @@
 
   /* fetch the catalog once (memoized). The CDN base is the 'remote_url'
      localStorage key, else a default test CDN. Apps await this before mount. */
-  const DEFAULT_REMOTE = 'https://cdn.vtube.puppylab.org/free-videos/';
+  const DEFAULT_REMOTE = 'https://cdn.vtube.puppylab.org/featured-videos/';
   /* the effective CDN base: the 'remote_url' localStorage override, else the default */
   function getRemoteUrl() {
     try { return localStorage.getItem(KEY_REMOTE) || DEFAULT_REMOTE; } catch (err) { return DEFAULT_REMOTE; }
