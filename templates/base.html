@@ -106,6 +106,15 @@
   <!-- MAIN -->
   <main class="mx-auto flex w-[1344px] shrink-0 grow items-start gap-7 px-8 pb-11 pt-9">
 
+    <!-- error banner (plain, non-Vue): store.js fills .error-message and unhides
+         this on catalog load failure -->
+    <div id="error-app" style="display:none"
+      class="flex w-full flex-col items-center gap-4 rounded-organic bg-terra-100 px-6 py-10 text-center text-terra-700">
+      <div class="error-message text-lg font-semibold"></div>
+      <button onclick="location.reload()"
+        class="rounded-full bg-terra-500 px-5 py-2 text-sm font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600">Reload</button>
+    </div>
+
     [% block main %]
     <!-- main content (left panel) -->
     [% endblock %]

@@ -167,11 +167,19 @@
   /* fetch the catalog once (memoized). The CDN base is the 'remote_url'
      localStorage key, else a default test CDN. Apps await this before mount. */
   const DEFAULT_REMOTE = 'https://cdn.vtube.puppylab.org/free-videos/';
+  /* reveal the plain (non-Vue) #error-app banner in base.html on load failure */
+  function showLoadError(url) {
+    const box = global.document && global.document.getElementById('error-app');
+    if (!box) return;
+    const msg = box.querySelector('.error-message');
+    if (msg) msg.textContent = 'Failed load video catelog from ' + url;
+    box.style.display = '';
+  }
   let loadPromise = null;
   function load() {
     if (!loadPromise) {
+      const remoteUrl = localStorage.getItem('remote_url') || DEFAULT_REMOTE;
       loadPromise = (async () => {
-        const remoteUrl = localStorage.getItem('remote_url') || DEFAULT_REMOTE;
         console.log('vTube: loading catalog from remote_url =', remoteUrl);
         const res = await fetch(remoteUrl + 'videos.json');
         if (!res.ok) throw new Error('vTube: HTTP ' + res.status + ' fetching ' + remoteUrl + 'videos.json');
@@ -179,7 +187,10 @@
         global.VTubeData = data;
         applyData(data, remoteUrl);
         return data;
-      })();
+      })().catch((err) => {
+        showLoadError(remoteUrl);   // show the error banner
+        throw err;                  // keep the promise rejected so apps skip mounting
+      });
     }
     return loadPromise;
   }
