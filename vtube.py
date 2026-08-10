@@ -6,8 +6,7 @@ from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from jinja2 import Environment, FileSystemLoader
 
-from videos_js import gen_video_json
-from util import write_json, scan_videos, gen_video_images, select_best_title
+from util import write_json, scan_videos, gen_video_images, select_best_title, gen_video_json
 
 # base directory path:
 BASE_DIR = Path(__file__).resolve().parent
