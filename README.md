@@ -53,14 +53,14 @@ free-videos
    └─ traveling.mp4
 ```
 
-Run `python3 vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory.
+Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory.
 
 This script also generates `config.json` and `videos.js`. You can modify the CDN config in these two files.
 
 ## Dev mode
 
-Use `python3 vtube.py --serve` to start dev mode.
+Use `python vtube.py --serve` to start dev mode.
 
 ## Build mode
 
-Use `python3 vtube.py --build free-videos` to generate static site.
+Use `python vtube.py --build free-videos` to generate static site.
