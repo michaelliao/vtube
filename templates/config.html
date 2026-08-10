@@ -8,22 +8,31 @@
 [% block main %]
 <!-- PAGE CONTENT (own app) -->
 <div id="app" v-cloak class="flex min-w-0 flex-1 flex-col gap-6">
-  <section class="flex flex-col gap-5 rounded-organic bg-surface px-8 py-10">
+  <!-- valid remote_url: the confirm / cancel panel -->
+  <section v-if="valid" class="flex flex-col gap-5 rounded-organic bg-surface px-8 py-10">
     <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Configure video source</h2>
     <div class="flex flex-col gap-2 text-[15px]">
       <div><span class="font-semibold">Config remote url to: </span>
-        <span class="break-all text-terra-700">{{ newUrl || '(none)' }}</span>
+        <span class="break-all text-terra-700">{{ newUrl }}</span>
       </div>
       <div><span class="font-semibold">Replace current url: </span>
         <span class="break-all text-sand-700">{{ currentUrl }}</span>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <button @click="onConfirm" :disabled="!newUrl"
-        class="rounded-full bg-terra-500 px-5 py-2 text-sm font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600 disabled:cursor-not-allowed disabled:opacity-50">Confirm</button>
+      <button @click="onConfirm"
+        class="rounded-full bg-terra-500 px-5 py-2 text-sm font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600">Confirm</button>
       <button @click="onCancel"
         class="rounded-full border border-ink/15 bg-sand-100 px-5 py-2 text-sm font-semibold text-sand-700 hover:bg-sand-300 hover:text-ink">Cancel</button>
     </div>
+  </section>
+
+  <!-- empty or invalid remote_url: error only, the panel (and its buttons) is hidden -->
+  <section v-else
+    class="flex flex-col items-center gap-4 rounded-organic bg-terra-100 px-8 py-12 text-center text-terra-700">
+    <div class="text-lg font-semibold">{{ error }}</div>
+    <a href="./"
+      class="rounded-full border border-terra-300 bg-terra-200 px-5 py-2 text-sm font-semibold !text-terra-700 hover:bg-terra-300 hover:!no-underline">Back to browse</a>
   </section>
 </div>
 [% endblock %]
@@ -43,14 +52,18 @@
     setup() {
       const newUrl = new URLSearchParams(location.search).get('remote_url') || '';
       const currentUrl = S.getRemoteUrl();
+      const valid = /^https?:\/\//i.test(newUrl);   // must start with http:// or https://
+      const error = !newUrl
+        ? 'No remote_url given.'
+        : (!valid ? 'Invalid remote_url — it must start with http:// or https://' : '');
       function onConfirm() {
-        if (newUrl) S.setRemoteUrl(newUrl);   // persist, then back to browse
+        S.setRemoteUrl(newUrl);   // only reachable when valid; persist, then back to browse
         location.assign('./');
       }
       function onCancel() {
-        location.assign('./');                // discard, back to browse
+        location.assign('./');    // discard, back to browse
       }
-      return { newUrl, currentUrl, onConfirm, onCancel };
+      return { newUrl, currentUrl, valid, error, onConfirm, onCancel };
     }
   }).mount('#app');
 </script>
