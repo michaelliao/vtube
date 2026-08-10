@@ -40,8 +40,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg wget unzip
       - name: Download Sample Videos
-      - run: |
-          wget https://github.com/michaelliao/vtube/releases/download/video-sample/free-videos.zip
+        run: |
+          wget "https://github.com/michaelliao/vtube/releases/download/video-sample/free-videos.zip"
           unzip free-videos.zip
       - name: Run Build Script
         run: |
