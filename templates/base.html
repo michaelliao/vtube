@@ -90,7 +90,8 @@
         <span class="text-xl font-semibold tracking-tight">vTube</span>
       </a>
       <div class="flex min-w-0 flex-1 items-center justify-end gap-3">
-        <button @click="ui.libraryOpen = !ui.libraryOpen" :class="ui.libraryOpen ? 'bg-surface' : 'bg-transparent'"
+        <button v-show="ui.libraryReady" @click="ui.libraryOpen = !ui.libraryOpen"
+          :class="ui.libraryOpen ? 'bg-surface' : 'bg-transparent'"
           class="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/15 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-sand-300">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
             stroke-linecap="round">
@@ -245,6 +246,7 @@
                 if (!key || key === S.KEY_HISTORY) history.value = S.getHistory();
                 if (!key || key === S.KEY_FAVORITE) favorites.value = S.getFavorites();
               });
+              S.ui.libraryReady = true;   // reveal the header's Library button
             });
 
             return {

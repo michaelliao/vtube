@@ -183,8 +183,10 @@
     return loadPromise;
   }
 
-  /* ---------- shared UI state (library panel open/collapsed) ---------- */
-  const ui = Vue.reactive({ libraryOpen: true, historyOpen: true });
+  /* ---------- shared UI state (library panel open/collapsed) ----------
+     libraryReady flips true once the (async-mounted) library app is up, so the
+     header's Library button can stay hidden until the panel actually exists. */
+  const ui = Vue.reactive({ libraryOpen: true, historyOpen: true, libraryReady: false });
 
   /* ---------- formatting helpers ---------- */
   function fmt(sec) {
