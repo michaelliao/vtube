@@ -281,7 +281,7 @@ def gen_video_json(videos_dir:str|Path):
     data.suggestions = _gen_suggestions(videos)
     data.videos = videos
 
-    return json.dumps(data, ensure_ascii=False, indent=2)
+    return json.dumps(data, ensure_ascii=False)
 
 if __name__ == "__main__":
     import doctest
