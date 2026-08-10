@@ -6,9 +6,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>[% block title %][% endblock %] - vTube</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="videos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.3/dist/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.41/dist/vue.global.min.js"></script>
   <script src="store.js"></script>
   <style type="text/tailwindcss">
     @theme {
@@ -219,7 +218,7 @@
         const { createApp, ref, computed, onMounted } = Vue;
         const S = window.VTube;
 
-        createApp({
+        S.load().then(() => createApp({
           setup() {
             const byId = computed(() => new Map(S.videos.list.map(v => [v.id, v])));
             const history = ref(S.getHistory());
@@ -254,7 +253,8 @@
               isFavorite, toggleFavorite, clearHistory, showVideo, fmt: S.fmt
             };
           }
-        }).mount('#library-app');
+        }).mount('#library-app'))
+          .catch(err => console.error(err));
       })();
     </script>
 

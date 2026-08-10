@@ -233,11 +233,11 @@
      The sheet URL itself comes per-video from nowPlaying.thumbs. */
   const SPRITE = { frames: 100, cols: 100 };
 
-  /* header: just the library open/close toggle */
+  /* header: just the library open/close toggle (needs no catalog, mounts now) */
   createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
 
-  /* page content: the player and the suggestion strip */
-  createApp({
+  /* page content: player + suggestion strip — mounts once the catalog loads */
+  S.load().then(() => createApp({
     setup() {
       const favorites = ref(S.getFavorites());   // synced for heart state
 
@@ -372,6 +372,7 @@
         toggleFullscreen, fmt: S.fmt
       };
     }
-  }).mount('#app');
+  }).mount('#app'))
+    .catch(err => console.error(err));
 </script>
 [% endblock %]

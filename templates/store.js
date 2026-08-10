@@ -1,12 +1,13 @@
 /* ============================================================
    vTube — shared client store (Vue 3 global build, no bundler)
 
-   Loaded by every page AFTER vue.global.js AND videos.js. Provides
-   window.VTube: the video catalog (from window.VTubeData, defined by
-   videos.js), the localStorage-backed watch-history / favorites store,
-   and small singletons (ui, videos) shared across the several Vue apps
-   mounted on one page (header, page content, and the standalone
-   "My library" panel, both defined in base.html).
+   Loaded by every page AFTER vue.global.js. Provides window.VTube: the
+   localStorage-backed watch-history / favorites store, and the video
+   catalog which is fetched at runtime by VTube.load() from the CDN
+   ('remote_url' in localStorage, else a default) into window.VTubeData.
+   Apps await VTube.load() before mounting so setup() sees a populated
+   catalog. The ui/videos singletons are shared across the several Vue
+   apps on a page (header, page content, and the "My library" panel).
 
    localStorage keys (client-only, never sent to the server):
      vtube_history   [{ id, at, progress }] newest first, max 10 (FIFO)
@@ -113,43 +114,74 @@
     return () => global.removeEventListener('storage', handler);
   }
 
-  /* ---------- video catalog (static; provided by videos.js as window.VTubeData) ---------- */
-  const videos = { list: (global.VTubeData && global.VTubeData.videos) || [] };
-  /* precomputed facets: [name, count] pairs sorted by count desc, mapped to { name, count } */
-  const categories = ((global.VTubeData && global.VTubeData.categories) || []).map(c => ({ name: c[0], count: c[1] }));
-  const tags = ((global.VTubeData && global.VTubeData.tags) || []).map(t => ({ name: t[0], count: t[1] }));
-  /* name -> count lookups over those facets */
-  const categoryCountMap = new Map(categories.map(c => [c.name, c.count]));
-  const tagCountMap = new Map(tags.map(t => [t.name, t.count]));
+  /* ---------- video catalog (fetched from the CDN at runtime by load()) ----------
+     Not available until load() resolves, so apps mount only after S.load().
+     videos/categories/tags are exported by reference and mutated in place;
+     the Maps/cdn are closed over by the helpers below and reassigned on load. */
+  const videos = { list: [] };
+  const categories = [];   // { name, count }, sorted by count desc
+  const tags = [];         // { name, count }, sorted by count desc
+  let cdn = '';
+  let byId = new Map();
+  let suggestions = {};     // video id -> [suggested id, ...]
+  let categoryCountMap = new Map();
+  let tagCountMap = new Map();
+
   const categoryCount = (name) => categoryCountMap.get(name) || 0;
   const tagCount = (name) => tagCountMap.get(name) || 0;
-  /* id -> video lookup, and precomputed suggestions (video id -> [suggested id, ...]) */
-  const byId = new Map(videos.list.map(v => [v.id, v]));
   const getVideo = (id) => byId.get(id) || null;
-  const suggestions = (global.VTubeData && global.VTubeData.suggestions) || {};
   const suggestionsFor = (id) => (suggestions[id] || []).map(sid => byId.get(sid)).filter(Boolean);
 
-  /* one-time cleanup: drop history/favorite entries whose video is no longer in
-     the catalog and persist the pruned list, so counts (e.g. "7/10") never
-     include dead ids. Runs at load, before any app reads the store. */
+  /* asset URL resolvers: join the cdn base with a video's relative path;
+     thumbUrl falls back to LIST_THUMB. All null-safe (a template may pass a
+     possibly-absent video). */
+  const videoSrc = (v) => v ? cdn + v.url : '';
+  const posterUrl = (v) => v ? cdn + v.poster : '';
+  const thumbsUrl = (v) => v ? cdn + v.thumbs : '';
+  const thumbUrl = (v) => (v && v.thumb) ? cdn + v.thumb : LIST_THUMB;
+
+  /* drop history/favorite entries whose video is no longer in the catalog and
+     persist the pruned list, so counts (e.g. "7/10") never include dead ids. */
   function pruneStoredIds(key) {
     const list = readList(key);
     const clean = list.filter(e => byId.has(e.id));
     if (clean.length !== list.length) writeList(key, clean);
   }
-  pruneStoredIds(KEY_HISTORY);
-  pruneStoredIds(KEY_FAVORITE);
 
-  /* ---------- asset URL resolvers ----------
-     videos.js stores relative paths plus a cdn base ({ video, image }); these
-     join them into absolute URLs. thumbUrl falls back to LIST_THUMB when a
-     video has no thumbnail. All are null-safe so templates can pass a
-     possibly-absent nowPlaying. */
-  const cdn = (global.VTubeData && global.VTubeData.cdn) || '';
-  const videoSrc = (v) => v ? cdn + v.url : '';
-  const posterUrl = (v) => v ? cdn + v.poster : '';
-  const thumbsUrl = (v) => v ? cdn + v.thumbs : '';
-  const thumbUrl = (v) => (v && v.thumb) ? cdn + v.thumb : LIST_THUMB;
+  /* populate the catalog state from a fetched videos.json. `base` (the
+     remote_url) is used as the asset cdn when the payload omits an absolute one. */
+  function applyData(data, base) {
+    cdn = data.cdn || base;
+    videos.list = data.videos || [];
+    categories.splice(0, categories.length, ...((data.categories || []).map(c => ({ name: c[0], count: c[1] }))));
+    tags.splice(0, tags.length, ...((data.tags || []).map(t => ({ name: t[0], count: t[1] }))));
+    categoryCountMap = new Map(categories.map(c => [c.name, c.count]));
+    tagCountMap = new Map(tags.map(t => [t.name, t.count]));
+    byId = new Map(videos.list.map(v => [v.id, v]));
+    suggestions = data.suggestions || {};
+    pruneStoredIds(KEY_HISTORY);
+    pruneStoredIds(KEY_FAVORITE);
+  }
+
+  /* fetch the catalog once (memoized). The CDN base is the 'remote_url'
+     localStorage key, else a default test CDN. Apps await this before mount. */
+  const DEFAULT_REMOTE = 'https://cdn.vtube.puppylab.org/free-videos/';
+  let loadPromise = null;
+  function load() {
+    if (!loadPromise) {
+      loadPromise = (async () => {
+        const remoteUrl = localStorage.getItem('remote_url') || DEFAULT_REMOTE;
+        console.log('vTube: loading catalog from remote_url =', remoteUrl);
+        const res = await fetch(remoteUrl + 'videos.json');
+        if (!res.ok) throw new Error('vTube: HTTP ' + res.status + ' fetching ' + remoteUrl + 'videos.json');
+        const data = await res.json();
+        global.VTubeData = data;
+        applyData(data, remoteUrl);
+        return data;
+      })();
+    }
+    return loadPromise;
+  }
 
   /* ---------- shared UI state (library panel open/collapsed) ---------- */
   const ui = Vue.reactive({ libraryOpen: true, historyOpen: true });
@@ -173,6 +205,7 @@
   global.VTube = {
     KEY_HISTORY: KEY_HISTORY, KEY_FAVORITE: KEY_FAVORITE,
     HISTORY_MAX: HISTORY_MAX, FAVORITES_MAX: FAVORITES_MAX,
+    load: load,
     videos: videos, categories: categories, tags: tags, ui: ui,
     categoryCount: categoryCount, tagCount: tagCount,
     getVideo: getVideo, suggestionsFor: suggestionsFor,

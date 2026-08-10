@@ -152,11 +152,11 @@
   const { createApp, reactive, ref, computed, onMounted, watch } = Vue;
   const S = window.VTube;
 
-  /* header: just the library open/close toggle */
+  /* header: just the library open/close toggle (needs no catalog, mounts now) */
   createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
 
-  /* page content: search / category / tag filtering over the catalog */
-  createApp({
+  /* page content: search / category / tag filtering — mounts once the catalog loads */
+  S.load().then(() => createApp({
     setup() {
       const videos = computed(() => S.videos.list);
       const favorites = ref(S.getFavorites());   // synced for card heart state
@@ -260,6 +260,7 @@
         gridTracks, isFavorite, toggleFavorite, toggleTag, resetFilters, showVideo, fmt: S.fmt
       };
     }
-  }).mount('#app');
+  }).mount('#app'))
+    .catch(err => console.error(err));
 </script>
 [% endblock %]
