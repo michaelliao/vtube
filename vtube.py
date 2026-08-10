@@ -30,7 +30,6 @@ def render_template(templ_path: Path):
 class DevHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        print(f'GET: {self.path}')
         # "/help/about.html?v=1" => "help/about.html"
         req_path_str = self.path.split('?')[0].lstrip('/')
         if not req_path_str:
@@ -42,6 +41,9 @@ class DevHTTPRequestHandler(BaseHTTPRequestHandler):
                 return
             case 'video.html':
                 self.render(Path('video.html'))
+                return
+            case 'config.html':
+                self.render(Path('config.html'))
                 return
             case _ if not req_path_str.endswith('.html'):
                 # try static file under template dir:
