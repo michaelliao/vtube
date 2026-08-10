@@ -27,6 +27,7 @@
   const KEY_HISTORY = 'vtube_history';
   const KEY_FAVORITE = 'vtube_favorite';
   const KEY_PLAYER = 'vtube_player';
+  const KEY_LIBRARY = 'vtube_library';
   const HISTORY_MAX = 10;
   const FAVORITES_MAX = 10;
 
@@ -184,9 +185,19 @@
   }
 
   /* ---------- shared UI state (library panel open/collapsed) ----------
-     libraryReady flips true once the (async-mounted) library app is up, so the
-     header's Library button can stay hidden until the panel actually exists. */
-  const ui = Vue.reactive({ libraryOpen: true, historyOpen: true, libraryReady: false });
+     libraryOpen is persisted (defaults to open on first visit); libraryReady
+     flips true once the (async-mounted) library app is up, so the header's
+     Library button can stay hidden until the panel actually exists. */
+  function readLibraryOpen() {
+    try {
+      const v = localStorage.getItem(KEY_LIBRARY);
+      return v === null ? true : v === 'true';
+    } catch (err) { return true; }
+  }
+  const ui = Vue.reactive({ libraryOpen: readLibraryOpen(), historyOpen: true, libraryReady: false });
+  Vue.watch(() => ui.libraryOpen, (open) => {
+    try { localStorage.setItem(KEY_LIBRARY, open ? 'true' : 'false'); } catch (err) { }
+  });
 
   /* ---------- formatting helpers ---------- */
   function fmt(sec) {
