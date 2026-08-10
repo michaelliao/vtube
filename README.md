@@ -49,15 +49,40 @@ free-videos/
 │  └─ v12345.mp4
 ├─ airplane-landing-rear-view/
 │  └─ unnamed.mp4
-├─ ...
-└─ config.json
+└─ ...
 ```
 
-You can edit `config.json` to set CDN url, or set to `''` to use the same static server.
+Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory and a global `videos.json`:
 
-Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory.
-
-This script also generate `videos.js` which contains CDN url.
+```
+free-videos/
+├─ a-herd-of-lions-walking/
+│  ├─ info.json
+│  ├─ poster.jpg
+│  ├─ thumb.jpg
+│  ├─ thumbs.jpg
+│  └─ video.mp4
+├─ a-private-jet-taking-off/
+│  ├─ info.json
+│  ├─ poster.jpg
+│  ├─ thumb.jpg
+│  ├─ thumbs.jpg
+│  └─ video.mp4
+├─ african-elephants-walking-on-a-dusty-ground/
+│  ├─ info.json
+│  ├─ poster.jpg
+│  ├─ thumb.jpg
+│  ├─ thumbs.jpg
+│  └─ v12345.mp4
+├─ airplane-landing-rear-view/
+│  ├─ info.json
+│  ├─ poster.jpg
+│  ├─ thumb.jpg
+│  ├─ thumbs.jpg
+│  └─ unnamed.mp4
+├─ ...
+└─ videos.json
+```
 
 ## Dev mode
 
@@ -65,7 +90,7 @@ Use `python vtube.py --serve` to start dev mode.
 
 ## Build mode
 
-Use `python vtube.py --build free-videos` to generate static site.
+Use `python vtube.py --build` to generate static site.
 
 What you get:
 
@@ -74,7 +99,6 @@ dist/
 ├─ index.html
 ├─ video.html
 ├─ store.js
-├─ videos.js
 └─ favicon.ico
 ```
 
