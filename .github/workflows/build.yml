@@ -34,19 +34,9 @@ jobs:
         with:
           python-version: 3.14
       - name: Install Dependencies
-        run: pip install -r requirements.txt
-      - name: Apt Install
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg wget unzip
-      - name: Download Sample Videos
-        run: |
-          wget "https://github.com/michaelliao/vtube/releases/download/video-sample/free-videos.zip"
-          unzip free-videos.zip
+        run: pip install jinja2==3.1.6
       - name: Run Build Script
-        run: |
-          python vtube.py --prepare free-videos
-          python vtube.py --build free-videos
+        run: python vtube.py --build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
