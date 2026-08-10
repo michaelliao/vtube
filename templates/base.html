@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<!-- Base template for Jinja2 -->
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>[% block title %][% endblock %] - vTube</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="videos.js"></script>
+  <script src="store.js"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-bg: #f5ead8;
+      --color-surface: #ebddc5;
+      --color-ink: #201e1d;
+      --color-sand-100: #f9f4ed;
+      --color-sand-200: #eee7db;
+      --color-sand-300: #dcd3c4;
+      --color-sand-400: #c0b6a5;
+      --color-sand-500: #a19786;
+      --color-sand-600: #82796a;
+      --color-sand-700: #645c50;
+      --color-sand-800: #474238;
+      --color-sand-900: #2e2b25;
+      --color-terra-100: #fff2eb;
+      --color-terra-200: #ffe1d0;
+      --color-terra-300: #ffc6a5;
+      --color-terra-400: #f6a06b;
+      --color-terra-500: #c67139;
+      --color-terra-600: #b2622d;
+      --color-terra-700: #8c491a;
+      --color-sage-100: #f0fae1;
+      --color-sage-200: #e1eecc;
+      --color-sage-300: #ccdbb2;
+      --color-sage-400: #aebf92;
+      --color-sage-500: #7a8a5e;
+      --color-sage-600: #728157;
+      --color-sage-700: #56633f;
+      --radius-organic: 16px;
+  }
+  </style>
+  <style>
+    body {
+      background: #f5ead8;
+      color: #201e1d;
+    }
+
+    a {
+      color: #8c491a;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: #c67139;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    :focus-visible {
+      outline: 2px solid #c67139;
+      outline-offset: 2px;
+    }
+
+    [v-cloak] {
+      visibility: hidden;
+    }
+
+    ::selection {
+      background: rgba(198, 113, 57, 0.3);
+    }
+  </style>
+
+  [% block style %][% endblock %]
+
+</head>
+
+<body class="font-sans text-[15px] leading-relaxed h-screen overflow-auto flex flex-col">
+
+  <!-- HEADER (own app: owns the library open/close toggle) -->
+  <header id="header-app" v-cloak
+    class="sticky top-0 z-20 shrink-0 min-w-[1344px] border-b border-ink/10 bg-bg/90 backdrop-blur">
+    <div class="mx-auto w-[1344px] px-8 py-3.5 flex items-center gap-4">
+      <a href="./" class="flex items-center gap-2.5 !text-ink hover:!no-underline">
+        <span class="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-terra-500 text-terra-100">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="6 3 20 12 6 21 6 3" />
+          </svg>
+        </span>
+        <span class="text-xl font-semibold tracking-tight">vTube</span>
+      </a>
+      <div class="flex min-w-0 flex-1 items-center justify-end gap-3">
+        <button @click="ui.libraryOpen = !ui.libraryOpen" :class="ui.libraryOpen ? 'bg-surface' : 'bg-transparent'"
+          class="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/15 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-sand-300">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+            stroke-linecap="round">
+            <path d="M4 6h16M4 12h10M4 18h16" />
+          </svg>
+          Library
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="mx-auto flex w-[1344px] shrink-0 grow items-start gap-7 px-8 pb-11 pt-9">
+
+    [% block main %]
+    <!-- main content (left panel) -->
+    [% endblock %]
+
+    <!-- #library-app is the Vue mount container (display:contents so it adds no
+     layout box). v-show must live on the inner <aside>, NOT on the mount
+     element itself — Vue does not compile directives on the element you
+     mount onto, only its innerHTML. -->
+    <div id="library-app" v-cloak class="contents">
+      <aside v-show="ui.libraryOpen" class="flex w-1/4 shrink-0 flex-col gap-7 rounded-organic bg-surface p-[22px]">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-xl font-semibold leading-tight">My library</h3>
+          <button @click="ui.libraryOpen = false" aria-label="Close library panel"
+            class="grid h-[30px] w-[30px] place-items-center rounded-full text-sand-700 hover:bg-sand-300 hover:text-ink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+              stroke-linecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- WATCH HISTORY -->
+        <div class="flex flex-col gap-3">
+          <button @click="ui.historyOpen = !ui.historyOpen"
+            class="flex w-full items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.08em] text-sage-600 hover:text-sage-700">
+            Watch history
+            <span class="grid place-items-center transition-transform duration-200"
+              :style="{ transform: ui.historyOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+                stroke-linecap="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+          <div v-show="ui.historyOpen" class="flex flex-col gap-3">
+            <div v-for="e in historyRows" :key="e.video.id" @click="showVideo(e.video.id)"
+              class="flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
+              <div class="aspect-[16/10] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-sand-300 text-sand-600">
+                <div class="h-full w-full bg-cover bg-center"
+                  :style="{ backgroundImage: 'url(' + thumbUrl(e.video) + ')' }"></div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-semibold leading-tight">
+                  {{ e.video.name }}
+                </div>
+                <div class="text-xs text-sand-700">{{ e.when }}</div>
+              </div>
+              <button @click.stop="toggleFavorite(e.video.id)" aria-label="Toggle favorite"
+                :class="isFavorite(e.video.id) ? 'bg-terra-200 text-terra-700 hover:bg-terra-300' : 'text-sand-600 hover:bg-sand-400/40 hover:text-terra-700'"
+                class="grid h-7 w-7 shrink-0 place-items-center rounded-full">
+                <svg v-if="isFavorite(e.video.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+                </svg>
+                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.75" stroke-linejoin="round">
+                  <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="!historyRows.length" class="px-1.5 text-[13px] text-sand-700">Nothing watched yet — pick a film
+              below.</div>
+            <div class="flex items-center justify-between gap-2 pl-1.5 pt-0.5">
+              <span class="text-xs tabular-nums text-sand-600">{{ history.length }}/{{ HISTORY_MAX }} kept</span>
+              <button @click="clearHistory"
+                class="text-[13px] font-semibold text-terra-700 hover:underline">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAVORITES -->
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-[0.08em] text-sage-600">Favorites</div>
+            <span class="text-xs font-semibold tabular-nums text-sand-600">{{ favorites.length }}/{{ FAVORITES_MAX
+              }}</span>
+          </div>
+          <div class="flex flex-col gap-3">
+            <div v-for="e in favoriteRows" :key="e.video.id" @click="showVideo(e.video.id)"
+              class="flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
+              <div class="aspect-[16/10] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-sand-300 text-sand-600">
+                <div class="h-full w-full bg-cover bg-center"
+                  :style="{ backgroundImage: 'url(' + thumbUrl(e.video) + ')' }"></div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-semibold leading-tight">{{ e.video.name }}</div>
+                <div class="text-xs text-sand-700">{{ e.video.category }} · {{ fmt(e.video.duration) }}</div>
+              </div>
+              <button @click.stop="toggleFavorite(e.video.id)" aria-label="Remove from favorites"
+                class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terra-200 text-terra-700 hover:bg-terra-300">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="!favoriteRows.length" class="px-1.5 text-[13px] text-sand-700">No favorites yet — tap a heart on
+              any film.</div>
+            <div v-if="notice"
+              class="mt-1 rounded-[18px] bg-terra-200 px-3 py-2 text-[13px] font-semibold text-terra-700">{{ notice }}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      /* Standalone Vue app for the "My library" panel. Reads history &
+         favorites from window.VTube (localStorage) and re-reads whenever a
+         'storage' event fires — from another tab natively, or from this
+         tab via the synthetic event that VTube dispatches on every write. */
+      (function () {
+        const { createApp, ref, computed, onMounted } = Vue;
+        const S = window.VTube;
+
+        createApp({
+          setup() {
+            const byId = computed(() => new Map(S.videos.list.map(v => [v.id, v])));
+            const history = ref(S.getHistory());
+            const favorites = ref(S.getFavorites());
+            const notice = ref('');
+
+            const historyRows = computed(() => history.value.filter(e => byId.value.has(e.id))
+              .map(e => ({ video: byId.value.get(e.id), when: S.relative(e.at) })));
+            const favoriteRows = computed(() => favorites.value.filter(e => byId.value.has(e.id))
+              .map(e => ({ video: byId.value.get(e.id) })));
+
+            const isFavorite = (id) => favorites.value.some(e => e.id === id);
+            function toggleFavorite(id) {
+              const res = S.toggleFavorite(id);
+              notice.value = (res && res.ok === false && res.reason === 'full')
+                ? 'Favorites are full (' + S.FAVORITES_MAX + ') — remove one first.'
+                : '';
+            }
+            const clearHistory = () => S.clearHistory();
+            const showVideo = (id) => location.assign(`video.html?id=${id}`);
+
+            onMounted(() => {
+              S.subscribe((key) => {
+                if (!key || key === S.KEY_HISTORY) history.value = S.getHistory();
+                if (!key || key === S.KEY_FAVORITE) favorites.value = S.getFavorites();
+              });
+            });
+
+            return {
+              ui: S.ui, history, favorites, historyRows, favoriteRows, notice,
+              HISTORY_MAX: S.HISTORY_MAX, FAVORITES_MAX: S.FAVORITES_MAX, thumbUrl: S.thumbUrl,
+              isFavorite, toggleFavorite, clearHistory, showVideo, fmt: S.fmt
+            };
+          }
+        }).mount('#library-app');
+      })();
+    </script>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="sticky bottom-0 z-20 shrink-0 min-w-[1344px] border-t border-sand-100/10 bg-ink text-sand-100">
+    <div class="mx-auto flex w-[1344px] items-center gap-5 px-8 py-3">
+      <span class="shrink-0 text-[15px] font-semibold">vTube</span>
+      <span class="text-[13px] text-sand-500">
+        <span style="display: inline-block; transform: scaleX(-1);">©</span> copyleft 2026.
+      </span>
+      <div class="flex-1"></div>
+      <div class="flex shrink-0 items-center gap-4 text-[13px]">
+        <a href="https://github.com/michaelliao/vtube"
+          class="!text-sage-300 hover:!text-sage-200 hover:!no-underline">Open Source</a>
+        <a href="https://github.com/michaelliao/vtube/blob/main/LICENSE"
+          class="!text-sage-300 hover:!text-sage-200 hover:!no-underline">License</a>
+      </div>
+    </div>
+  </footer>
+
+  [% block script %][% endblock %]
+</body>
+
+</html>

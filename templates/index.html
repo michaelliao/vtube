@@ -1,0 +1,265 @@
+[% extends "base.html" %]
+
+[% block title %] Home [% endblock %]
+
+[% block style %]
+<style>
+  /* index-only: suppress the search box's default focus ring */
+  #search:focus,
+  #search:focus-visible {
+    outline: none;
+  }
+</style>
+[% endblock %]
+
+[% block main %]
+<!-- PAGE CONTENT (own app) -->
+<div id="app" v-cloak class="flex min-w-0 flex-1 flex-col gap-11">
+
+  <!-- VIDEO LIST BY FILTERS -->
+  <section class="flex flex-col gap-4">
+
+    <!-- FILTERS -->
+    <div class="flex flex-col gap-3 rounded-organic bg-surface px-[18px] py-4">
+      <div class="flex items-center gap-3">
+        <span class="w-[74px] shrink-0 text-xs font-bold uppercase tracking-[0.08em] text-sand-700">Search</span>
+        <label
+          class="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-ink/15 bg-sand-100 px-3.5 py-2 text-sand-700 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terra-500">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+            stroke-linecap="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.2-3.2" />
+          </svg>
+          <input id="search" v-model="query" placeholder="Search films, makers, places"
+            class="w-full bg-transparent text-sm text-ink outline-none focus:outline-none" />
+          <button v-show="query" @click="query = ''" aria-label="Clear search"
+            class="shrink-0 text-sand-600 hover:text-ink">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+              stroke-linecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </label>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <span
+          class="w-[74px] shrink-0 pt-1.5 text-xs font-bold uppercase tracking-[0.08em] text-sand-700">Category</span>
+        <div class="flex min-w-0 flex-1 flex-wrap gap-2">
+          <button v-for="c in categories" :key="c.name" @click="category = c.name"
+            :class="category === c.name ? 'border-terra-500 bg-terra-500 text-terra-100' : 'border-ink/15 bg-sand-100 text-sand-700 hover:bg-sand-300 hover:text-ink'"
+            class="shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-semibold">
+            {{ c.name }} <span class="tabular-nums"
+              :class="category === c.name ? 'text-terra-200' : 'text-sand-600'">({{ c.count }})</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <span class="w-[74px] shrink-0 pt-1.5 text-xs font-bold uppercase tracking-[0.08em] text-sand-700">Tags
+          <span v-show="tags.length"
+            class="mt-1 block text-[11px] font-semibold normal-case tracking-normal text-sage-600">{{ tags.length
+            }} selected</span>
+          <button v-show="tags.length" @click="tags = []"
+            class="mt-0.5 text-[11px] font-semibold normal-case tracking-normal text-terra-700 hover:underline">Clear</button>
+        </span>
+        <div class="flex min-w-0 flex-1 flex-wrap gap-2">
+          <button v-for="t in visibleTags" :key="t.name" @click="toggleTag(t.name)"
+            :class="tags.includes(t.name) ? 'border-sage-700 bg-sage-500 text-sage-100' : 'border-ink/15 text-sand-700 hover:bg-sand-300 hover:text-ink'"
+            class="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-semibold">
+            {{ t.name }} <span class="tabular-nums"
+              :class="tags.includes(t.name) ? 'text-sage-200' : 'text-sand-600'">({{ t.count }})</span>
+          </button>
+          <button v-if="tagLimit < allTags.length" @click="tagLimit = Math.min(tagLimit + 20, allTags.length)"
+            class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-terra-300 bg-terra-200 px-3.5 py-1.5 text-[13px] font-semibold text-terra-700 hover:bg-terra-300 active:bg-terra-400">
+            More
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+              stroke-linecap="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 text-sm">
+      <span class="font-semibold tabular-nums text-sand-700">{{ matches.length }} {{ matches.length === 1 ? 'film'
+        : 'films' }}</span>
+      <button v-show="query || category !== 'All' || tags.length" @click="resetFilters"
+        class="rounded-full border border-ink/15 px-3 py-1 text-[13px] font-semibold text-terra-700 hover:bg-surface">Reset
+        filters</button>
+    </div>
+
+    <div class="grid gap-5" :style="{ gridTemplateColumns: gridTracks }">
+      <article v-for="v in filtered" :key="v.id" @click="showVideo(v.id)" class="flex cursor-pointer flex-col gap-3">
+        <div
+          class="group relative aspect-[16/10] overflow-hidden rounded-organic bg-surface shadow-[0_3px_10px_rgba(46,43,37,0.16)]">
+          <div class="h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
+            :style="{ backgroundImage: 'url(' + thumbUrl(v) + ')' }"></div>
+          <span
+            class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs font-semibold text-sand-100">{{
+            fmt(v.duration) }}</span>
+          <button @click.stop="toggleFavorite(v.id, $event)" aria-label="Toggle favorite"
+            :class="isFavorite(v.id) ? 'bg-terra-500 text-terra-100 hover:bg-terra-400' : 'bg-ink/60 text-sand-100 hover:bg-ink/80'"
+            class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full">
+            <svg v-if="isFavorite(v.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+            </svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+              stroke-linejoin="round">
+              <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+            </svg>
+          </button>
+        </div>
+        <div>
+          <h4 class="mb-1 text-lg font-semibold leading-tight">
+            <a v-bind:href="`video.html?id=${v.id}`">{{ v.name }}</a>
+          </h4>
+          <div class="text-[13px] text-sand-700">{{ v.category }} · {{ fmt(v.duration) }}</div>
+        </div>
+      </article>
+      <div v-if="!filtered.length"
+        class="col-span-full rounded-organic bg-surface px-6 py-8 text-center text-sm text-sand-700">
+        No films match <span v-if="query" class="font-semibold">“{{ query }}”</span><span
+          v-if="query && (category !== 'All' || tags.length)"> with </span><span v-if="category !== 'All'"
+          class="font-semibold">{{ category }}</span><span v-if="category !== 'All' && tags.length"> +
+        </span><span v-if="tags.length" class="font-semibold">{{ tags.join(', ') }}</span>.
+      </div>
+    </div>
+    <button v-if="hasMoreResults" @click="showMoreResults"
+      class="self-center rounded-full border border-ink/15 bg-surface px-5 py-2 text-sm font-semibold text-ink hover:bg-sand-300">
+      Show more ({{ matches.length - filtered.length }} left)
+    </button>
+  </section>
+
+  <!-- favorites-full tooltip -->
+  <div v-show="tip.text"
+    class="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-full bg-ink px-3.5 py-2 text-[13px] font-semibold text-sand-100 shadow-[0_12px_32px_rgba(46,43,37,0.35)] transition-opacity duration-200"
+    :style="{ left: tip.x + 'px', top: tip.y + 'px', opacity: tip.text ? 1 : 0 }">{{ tip.text }}</div>
+
+</div>
+[% endblock %]
+
+[% block script %]
+<script>
+  /* ============================================================
+     vTube index page — browse / filter grid (Vue 3 global build).
+     Shared history/favorites live in store.js (window.VTube); the
+     "My library" panel is its own app (defined in base.html). Two small
+     apps here — the header (library toggle) and the content grid —
+     share state through VTube.ui and VTube.videos.
+     ============================================================ */
+  const { createApp, reactive, ref, computed, onMounted, watch } = Vue;
+  const S = window.VTube;
+
+  /* header: just the library open/close toggle */
+  createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
+
+  /* page content: search / category / tag filtering over the catalog */
+  createApp({
+    setup() {
+      const videos = computed(() => S.videos.list);
+      const favorites = ref(S.getFavorites());   // synced for card heart state
+
+      /* seed the filters from the URL query (?q=&category=&tag=&tag=...),
+         ignoring any category/tag that isn't present in the catalog */
+      function filtersFromQuery() {
+        const params = new URLSearchParams(location.search);
+        const validCategories = new Set(S.categories.map(c => c.name));
+        const validTags = new Set(S.tags.map(t => t.name));
+        const cat = params.get('category');
+        return {
+          query: (params.get('q') || '').trim(),
+          category: (cat && validCategories.has(cat)) ? cat : 'All',
+          tags: Array.from(new Set(params.getAll('tag').filter(t => validTags.has(t))))
+        };
+      }
+      const seed = filtersFromQuery();
+      const query = ref(seed.query);
+      const category = ref(seed.category);
+      const tags = ref(seed.tags);
+      const tagLimit = ref(20);
+      const tip = reactive({ text: '', x: 0, y: 0 });
+      let tipTimer = null;
+
+      const gridTracks = computed(() => 'repeat(' + (S.ui.libraryOpen ? 3 : 4) + ', minmax(0, 1fr))');
+
+      /* facets come precomputed (sorted by count desc) from window.VTubeData; the
+         'All' pseudo-category is prepended for the "no category filter" choice */
+      const categories = computed(() => [{ name: 'All', count: videos.value.length }].concat(S.categories));
+      /* order the tag facet so URL-seeded selections sit at the front (keeping the
+         original count-desc order among each group) — otherwise a selected tag ranked
+         beyond `tagLimit` would be hidden behind "More" and look unselected on load */
+      const seededTags = new Set(seed.tags);
+      const allTags = computed(() => {
+        if (!seededTags.size) return S.tags;
+        const first = [], rest = [];
+        S.tags.forEach(t => (seededTags.has(t.name) ? first : rest).push(t));
+        return first.concat(rest);
+      });
+      const visibleTags = computed(() => allTags.value.slice(0, tagLimit.value));
+
+      const matches = computed(() => {
+        const q = query.value.trim().toLowerCase();
+        const wanted = tags.value.map(t => t.toLowerCase());
+        return videos.value.filter(v => {
+          if (category.value !== 'All' && v.category !== category.value) return false;
+          if (q) {
+            const hay = (v.name + ' ' + v.category + ' ' + v.tags.join(' ')).toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          if (!wanted.length) return true;
+          const lower = v.tags.map(t => t.toLowerCase());
+          return wanted.every(t => lower.includes(t));
+        });
+      });
+      const pageSize = computed(() => 24);
+      const shownCount = ref(24);
+      const filtered = computed(() => matches.value.slice(0, shownCount.value));
+      const hasMoreResults = computed(() => shownCount.value < matches.value.length);
+      const showMoreResults = () => { shownCount.value += pageSize.value; };
+      watch([query, category, tags], () => { shownCount.value = pageSize.value; }, { deep: true });
+
+      /* ---------- actions ---------- */
+      const isFavorite = (id) => favorites.value.some(e => e.id === id);
+      function toggleFavorite(id, ev) {
+        const res = S.toggleFavorite(id);
+        if (res && res.ok === false && res.reason === 'full') {
+          showTip(ev, 'Favorites full — max ' + S.FAVORITES_MAX);
+        }
+      }
+      function showTip(ev, text) {
+        const el = ev && ev.currentTarget;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        tip.text = text;
+        tip.x = Math.min(Math.max(r.left + r.width / 2, 100), window.innerWidth - 100);
+        tip.y = Math.max(r.top - 10, 12);
+        clearTimeout(tipTimer);
+        tipTimer = setTimeout(() => { tip.text = ''; }, 2200);
+      }
+      function toggleTag(name) {
+        tags.value = tags.value.includes(name) ? tags.value.filter(t => t !== name) : tags.value.concat(name);
+      }
+      function resetFilters() {
+        query.value = '';
+        category.value = 'All';
+        tags.value = [];
+      }
+      const showVideo = (id) => location.assign(`video.html?id=${id}`);
+
+      /* ---------- init ---------- */
+      onMounted(() => {
+        S.subscribe((key) => { if (!key || key === S.KEY_FAVORITE) favorites.value = S.getFavorites(); });
+      });
+
+      return {
+        ui: S.ui, thumbUrl: S.thumbUrl, tip,
+        query, category, tags, tagLimit,
+        categories, allTags, visibleTags, filtered, matches, hasMoreResults, showMoreResults,
+        gridTracks, isFavorite, toggleFavorite, toggleTag, resetFilters, showVideo, fmt: S.fmt
+      };
+    }
+  }).mount('#app');
+</script>
+[% endblock %]

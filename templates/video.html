@@ -1,0 +1,377 @@
+[% extends "base.html" %]
+
+[% block title %] Video [% endblock %]
+
+[% block style %]
+<style>
+  /* video controls: visible on hover, fade out after a delay while playing */
+  #controls,
+  #bigPlay {
+    opacity: 1;
+    transition: opacity 300ms ease;
+  }
+
+  #stage.playing #controls,
+  #stage.playing #bigPlay {
+    opacity: 0;
+    transition-delay: 2s;
+  }
+
+  #stage.playing:hover #controls {
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  #stage.playing {
+    cursor: none;
+  }
+
+  #stage.playing:hover {
+    cursor: default;
+  }
+</style>
+[% endblock %]
+
+[% block main %]
+<!-- PAGE CONTENT (own app) -->
+<div id="app" v-cloak class="flex min-w-0 flex-1 flex-col gap-11">
+
+  <template v-if="nowPlaying">
+
+    <!-- NOW WATCHING -->
+    <section class="flex flex-col gap-4">
+      <div class="w-full overflow-hidden rounded-organic bg-ink shadow-[0_12px_32px_rgba(46,43,37,0.22)]">
+        <div id="stage" :class="{ playing: playing }" class="relative aspect-video w-full bg-sand-900">
+          <video ref="video" class="h-full w-full bg-sand-900 object-contain" preload="metadata" playsinline
+            :poster="posterUrl(nowPlaying)" :src="videoSrc(nowPlaying)" @click="togglePlay" @play="onPlay"
+            @pause="playing = false" @ended="playing = false" @timeupdate="onTimeUpdate" @loadedmetadata="onTimeUpdate"
+            @volumechange="onVolumeChange"></video>
+          <button id="bigPlay" v-show="!playing" @click="togglePlay"
+            class="absolute left-1/2 top-1/2 grid h-[76px] w-[76px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-terra-500/90 text-terra-100 shadow-[0_12px_32px_rgba(46,43,37,0.22)] transition-opacity duration-300 hover:bg-terra-400 active:bg-terra-600">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="8 4 20 12 8 20 8 4" />
+            </svg>
+          </button>
+
+          <div id="controls" class="absolute inset-x-0 bottom-0 transition-opacity duration-300"
+            style="background:linear-gradient(to top, rgba(32,30,29,0.92) 40%, rgba(32,30,29,0))">
+            <!-- full-width progress bar with hover scrub preview -->
+            <div ref="bar" class="relative h-2.5 w-full cursor-pointer bg-sand-100/20" @mousemove="onBarMove"
+              @mouseleave="scrub.visible = false" @click="seek">
+              <div class="relative h-full bg-terra-500" :style="{ width: progressPct + '%' }">
+                <span class="absolute -right-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-terra-500"></span>
+              </div>
+              <div v-show="scrub.visible"
+                class="pointer-events-none absolute bottom-3.5 flex -translate-x-1/2 flex-col items-center gap-1.5"
+                :style="{ left: scrub.left + 'px' }">
+                <div
+                  class="h-[90px] w-[160px] overflow-hidden rounded-xl border-2 border-sand-100/85 bg-sand-900 bg-no-repeat shadow-[0_12px_32px_rgba(46,43,37,0.45)]"
+                  :style="{ backgroundImage: 'url(' + thumbsUrl(nowPlaying) + ')', backgroundPosition: scrub.pos }">
+                </div>
+                <span class="rounded-full bg-ink/85 px-2 py-0.5 text-xs font-semibold tabular-nums text-sand-100">
+                  <span v-text="scrub.time"></span>
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4 px-6 pb-4 pt-3.5 text-sand-100">
+              <button @click="togglePlay" :aria-label="playing ? 'Pause' : 'Play'"
+                class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-terra-500 text-terra-100 hover:bg-terra-400 active:bg-terra-600">
+                <svg v-if="!playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="7 4 20 12 7 20 7 4" />
+                </svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1.5" />
+                  <rect x="14" y="4" width="4" height="16" rx="1.5" />
+                </svg>
+              </button>
+              <div class="min-w-0 max-w-[46%]">
+                <div class="truncate text-base font-semibold leading-tight">{{ nowPlaying ? nowPlaying.name : '—' }}
+                </div>
+                <div class="text-xs text-sand-500">{{ nowPlaying ? nowPlaying.category : '—' }}</div>
+              </div>
+              <span class="shrink-0 text-xs tabular-nums text-sand-500">{{ fmt(currentTime) }} / {{ fmt(duration)
+                }}</span>
+              <div class="flex-1"></div>
+              <div class="flex shrink-0 items-center gap-1.5">
+                <button @click="toggleMute" aria-label="Volume"
+                  class="grid h-[34px] w-[34px] place-items-center rounded-full text-sand-100 hover:bg-sand-100/10">
+                  <svg v-if="muted || volume === 0" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.75" stroke-linecap="round">
+                    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                    <path d="m16 10 5 5M21 10l-5 5" />
+                  </svg>
+                  <svg v-else-if="volume < 0.5" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.75" stroke-linecap="round">
+                    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                    <path d="M16 9.5a3.5 3.5 0 0 1 0 5" />
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.75" stroke-linecap="round">
+                    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                    <path d="M16 9.5a3.5 3.5 0 0 1 0 5" />
+                    <path d="M18.5 7a7 7 0 0 1 0 10" />
+                  </svg>
+                </button>
+                <div ref="volBar" @pointerdown="startVolumeDrag"
+                  class="relative mx-3 h-2.5 w-[86px] shrink-0 cursor-pointer rounded-full bg-sand-100/25">
+                  <div class="relative h-full rounded-full bg-sand-100"
+                    :style="{ width: (muted ? 0 : volume * 100) + '%' }">
+                    <span
+                      class="absolute -right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-sand-100"></span>
+                  </div>
+                </div>
+                <button v-if="nowPlaying" @click="toggleFavorite(nowPlaying.id, $event)" aria-label="Save to favorites"
+                  :class="isFavorite(nowPlaying.id) ? 'bg-terra-500 text-terra-100 hover:bg-terra-400' : 'text-sand-100 hover:bg-sand-100/10'"
+                  class="grid h-[34px] w-[34px] place-items-center rounded-full">
+                  <svg v-if="isFavorite(nowPlaying.id)" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.75" stroke-linejoin="round">
+                    <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+                  </svg>
+                </button>
+                <button @click="toggleFullscreen" aria-label="Fullscreen"
+                  class="grid h-[34px] w-[34px] place-items-center rounded-full text-sand-100 hover:bg-sand-100/10">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75"
+                    stroke-linecap="round">
+                    <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="nowPlaying" class="flex flex-col gap-2.5">
+        <h2 class="text-[32px] font-semibold leading-tight tracking-tight">{{ nowPlaying.name }}</h2>
+        <div class="flex flex-wrap items-center gap-2">
+          <a :href="'./?category=' + encodeURIComponent(nowPlaying.category)"
+            class="rounded-full border border-ink/15 bg-sand-100 px-3.5 py-1 text-[13px] font-semibold !text-sand-700 hover:bg-sand-300 hover:!text-ink hover:!no-underline">{{
+            nowPlaying.category }} ({{ categoryCount(nowPlaying.category) }})</a>
+          <a v-for="t in nowPlaying.tags" :key="t" :href="'./?tag=' + encodeURIComponent(t)"
+            class="rounded-full border border-ink/15 px-3.5 py-1 text-[13px] font-semibold !text-sand-700 hover:bg-sand-300 hover:!text-ink hover:!no-underline">{{
+            t }} ({{ tagCount(t) }})</a>
+          <span class="pl-1 text-[13px] tabular-nums text-sand-600">{{ fmt(nowPlaying.duration) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUGGESTION -->
+    <section class="flex flex-col gap-4">
+      <div class="flex items-end justify-between gap-6">
+        <div>
+          <h2 class="text-[32px] font-semibold leading-tight tracking-tight">Suggestion</h2>
+        </div>
+      </div>
+      <div class="grid gap-5" :style="{ gridTemplateColumns: gridTracks }">
+        <article v-for="item in continueList" :key="item.video.id" @click="showVideo(item.video.id)"
+          class="flex cursor-pointer flex-col gap-3">
+          <div
+            class="group relative aspect-[16/10] overflow-hidden rounded-organic bg-surface shadow-[0_3px_10px_rgba(46,43,37,0.16)]">
+            <div
+              class="h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
+              :style="{ backgroundImage: 'url(' + thumbUrl(item.video) + ')' }"></div>
+            <span
+              class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs font-semibold text-sand-100">{{
+              fmt(item.video.duration) }}</span>
+            <button @click.stop="toggleFavorite(item.video.id, $event)" aria-label="Toggle favorite"
+              :class="isFavorite(item.video.id) ? 'bg-terra-500 text-terra-100 hover:bg-terra-400' : 'bg-ink/60 text-sand-100 hover:bg-ink/80'"
+              class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full">
+              <svg v-if="isFavorite(item.video.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+              </svg>
+              <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.75" stroke-linejoin="round">
+                <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
+              </svg>
+            </button>
+          </div>
+          <div>
+            <h4 class="mb-1 text-lg font-semibold leading-tight">
+              <a v-bind:href="`video.html?id=${item.video.id}`">{{ item.video.name }}</a>
+            </h4>
+            <div class="text-[13px] text-sand-700">{{ item.video.category }} · {{ fmt(item.video.duration) }}</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+  </template>
+
+  <!-- id missing or not in the catalog -->
+  <section v-else
+    class="flex grow flex-col items-center justify-center gap-3 rounded-organic bg-surface px-6 py-24 text-center">
+    <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Video not found</h2>
+    <p class="text-sm text-sand-700">This video is not in the catalog. <a href="./">Back to browse</a>.</p>
+  </section>
+
+  <!-- favorites-full tooltip -->
+  <div v-show="tip.text"
+    class="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-full bg-ink px-3.5 py-2 text-[13px] font-semibold text-sand-100 shadow-[0_12px_32px_rgba(46,43,37,0.35)] transition-opacity duration-200"
+    :style="{ left: tip.x + 'px', top: tip.y + 'px', opacity: tip.text ? 1 : 0 }">{{ tip.text }}</div>
+
+</div>
+
+[% endblock %]
+
+[% block script %]
+<script>
+  /* ============================================================
+     vTube video page — player + suggestions (Vue 3 global build).
+     Shared history/favorites live in store.js (window.VTube); the
+     "My library" panel is its own app (defined in base.html). Playing a
+     film records it to history via VTube, which dispatches a synthetic
+     'storage' event so the library panel on THIS tab updates too.
+     ============================================================ */
+  const { createApp, reactive, ref, computed, onMounted } = Vue;
+  const S = window.VTube;
+
+  /* sprite-sheet layout of the scrub thumbnails: 100 frames of 160x90 in one 16000x90 row.
+     The sheet URL itself comes per-video from nowPlaying.thumbs. */
+  const SPRITE = { frames: 100, cols: 100 };
+
+  /* header: just the library open/close toggle */
+  createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
+
+  /* page content: the player and the suggestion strip */
+  createApp({
+    setup() {
+      const favorites = ref(S.getFavorites());   // synced for heart state
+
+      const tip = reactive({ text: '', x: 0, y: 0 });
+      let tipTimer = null;
+
+      /* ---------- player state ---------- */
+      const video = ref(null);
+      const bar = ref(null);
+      const volBar = ref(null);
+      /* the page is video.html?id=<id>; the id may be missing or unknown, so
+         nowPlaying can be null (the template shows a "Video not found" state). */
+      const nowPlaying = ref(S.getVideo(idFromUrl()));
+      const playing = ref(false);
+      const currentTime = ref(0);
+      const duration = ref(0);
+      const player = S.getPlayer();                 // persisted { volume, muted }
+      const volume = ref(player.volume);
+      const muted = ref(player.muted);
+      const scrub = reactive({ visible: false, left: 0, pos: '0px 0px', time: '0:00' });
+
+      const gridTracks = computed(() => 'repeat(' + (S.ui.libraryOpen ? 3 : 4) + ', minmax(0, 1fr))');
+      const continueList = computed(() => S.suggestionsFor(nowPlaying.value && nowPlaying.value.id).map(v => ({ video: v })));
+      const progressPct = computed(() => duration.value ? (currentTime.value / duration.value) * 100 : 0);
+
+      /* ---------- favorites ---------- */
+      const isFavorite = (id) => favorites.value.some(e => e.id === id);
+      function toggleFavorite(id, ev) {
+        const res = S.toggleFavorite(id);
+        if (res && res.ok === false && res.reason === 'full') {
+          showTip(ev, 'Favorites full — max ' + S.FAVORITES_MAX);
+        }
+      }
+      function showTip(ev, text) {
+        const el = ev && ev.currentTarget;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        tip.text = text;
+        tip.x = Math.min(Math.max(r.left + r.width / 2, 100), window.innerWidth - 100);
+        tip.y = Math.max(r.top - 10, 12);
+        clearTimeout(tipTimer);
+        tipTimer = setTimeout(() => { tip.text = ''; }, 2200);
+      }
+      const showVideo = (id) => location.assign(`video.html?id=${id}`);
+
+      /* ---------- player actions ---------- */
+      function togglePlay() {
+        const el = video.value;
+        if (!el) return;
+        el.paused ? el.play().catch(() => { }) : el.pause();
+      }
+      function onPlay() {
+        playing.value = true;
+        if (nowPlaying.value) S.addHistory(nowPlaying.value.id, progressPct.value);  // record watch → syncs library
+      }
+      function onTimeUpdate() {
+        const el = video.value;
+        if (!el) return;
+        currentTime.value = el.currentTime;
+        duration.value = el.duration || 0;
+        if (playing.value && nowPlaying.value && duration.value) {
+          S.setProgress(nowPlaying.value.id, Math.round((el.currentTime / duration.value) * 100));
+        }
+      }
+      function onVolumeChange() {
+        const el = video.value;
+        if (!el) return;
+        volume.value = el.volume;
+        muted.value = el.muted;
+        S.setPlayer({ volume: el.volume, muted: el.muted });   // persist last-used level
+      }
+      function toggleMute() { if (video.value) video.value.muted = !video.value.muted; }
+      function seek(ev) {
+        const el = video.value, box = bar.value;
+        if (!el || !box || !el.duration) return;
+        const r = box.getBoundingClientRect();
+        el.currentTime = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * el.duration;
+      }
+      function onBarMove(ev) {
+        const box = bar.value;
+        if (!box) return;
+        const r = box.getBoundingClientRect();
+        const pct = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+        const frame = Math.min(SPRITE.frames - 1, Math.floor(pct * SPRITE.frames));
+        scrub.visible = true;
+        scrub.left = Math.min(Math.max(pct * r.width, 84), Math.max(r.width - 84, 84));
+        scrub.pos = (-160 * (frame % SPRITE.cols)) + 'px ' + (-90 * Math.floor(frame / SPRITE.cols)) + 'px';
+        scrub.time = S.fmt(pct * (duration.value || (nowPlaying.value ? nowPlaying.value.duration : 0)));
+      }
+      function startVolumeDrag(ev) {
+        const set = (e) => {
+          const el = video.value, box = volBar.value;
+          if (!el || !box) return;
+          const r = box.getBoundingClientRect();
+          el.volume = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+          el.muted = el.volume === 0;
+        };
+        set(ev);
+        const move = (e) => set(e);
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      }
+      function toggleFullscreen() {
+        const box = video.value && video.value.parentElement;
+        if (!box) return;
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (box.requestFullscreen) box.requestFullscreen();
+      }
+
+      /* ---------- init ---------- */
+      function idFromUrl() {
+        return new URLSearchParams(location.search).get('id');
+      }
+      onMounted(() => {
+        // swap the "Video" placeholder for the film name (or a not-found label)
+        document.title = document.title.replace('Video', nowPlaying.value ? nowPlaying.value.name : 'Not found');
+        if (video.value) {                          // restore persisted volume/mute onto the element
+          video.value.volume = volume.value;
+          video.value.muted = muted.value;
+        }
+        S.subscribe((key) => { if (!key || key === S.KEY_FAVORITE) favorites.value = S.getFavorites(); });
+      });
+
+      return {
+        ui: S.ui, videoSrc: S.videoSrc, posterUrl: S.posterUrl, thumbsUrl: S.thumbsUrl, thumbUrl: S.thumbUrl,
+        categoryCount: S.categoryCount, tagCount: S.tagCount, tip,
+        video, bar, volBar, nowPlaying, playing, currentTime, duration, volume, muted, scrub,
+        gridTracks, continueList, progressPct,
+        isFavorite, toggleFavorite, showVideo,
+        togglePlay, onPlay, onTimeUpdate, onVolumeChange, toggleMute, seek, onBarMove, startVolumeDrag,
+        toggleFullscreen, fmt: S.fmt
+      };
+    }
+  }).mount('#app');
+</script>
+[% endblock %]
