@@ -28,6 +28,7 @@
   const KEY_FAVORITE = 'vtube_favorite';
   const KEY_PLAYER = 'vtube_player';
   const KEY_LIBRARY = 'vtube_library';
+  const KEY_REMOTE = 'remote_url';
   const HISTORY_MAX = 10;
   const FAVORITES_MAX = 10;
 
@@ -167,6 +168,13 @@
   /* fetch the catalog once (memoized). The CDN base is the 'remote_url'
      localStorage key, else a default test CDN. Apps await this before mount. */
   const DEFAULT_REMOTE = 'https://cdn.vtube.puppylab.org/free-videos/';
+  /* the effective CDN base: the 'remote_url' localStorage override, else the default */
+  function getRemoteUrl() {
+    try { return localStorage.getItem(KEY_REMOTE) || DEFAULT_REMOTE; } catch (err) { return DEFAULT_REMOTE; }
+  }
+  function setRemoteUrl(url) {
+    try { localStorage.setItem(KEY_REMOTE, url); } catch (err) { }
+  }
   /* reveal the plain (non-Vue) #error-app banner in base.html on load failure */
   function showLoadError(url) {
     const box = global.document && global.document.getElementById('error-app');
@@ -178,7 +186,7 @@
   let loadPromise = null;
   function load() {
     if (!loadPromise) {
-      const remoteUrl = localStorage.getItem('remote_url') || DEFAULT_REMOTE;
+      const remoteUrl = getRemoteUrl();
       loadPromise = (async () => {
         console.log('vTube: loading catalog from remote_url =', remoteUrl);
         const res = await fetch(remoteUrl + 'videos.json');
@@ -229,7 +237,7 @@
   global.VTube = {
     KEY_HISTORY: KEY_HISTORY, KEY_FAVORITE: KEY_FAVORITE,
     HISTORY_MAX: HISTORY_MAX, FAVORITES_MAX: FAVORITES_MAX,
-    load: load,
+    load: load, getRemoteUrl: getRemoteUrl, setRemoteUrl: setRemoteUrl,
     videos: videos, categories: categories, tags: tags, ui: ui,
     categoryCount: categoryCount, tagCount: tagCount,
     getVideo: getVideo, suggestionsFor: suggestionsFor,

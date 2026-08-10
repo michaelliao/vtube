@@ -119,6 +119,7 @@
     <!-- main content (left panel) -->
     [% endblock %]
 
+    [% block library %]
     <!-- #library-app is the Vue mount container (display:contents so it adds no
      layout box). v-show must live on the inner <aside>, NOT on the mount
      element itself — Vue does not compile directives on the element you
@@ -268,6 +269,7 @@
           .catch(err => console.error(err));
       })();
     </script>
+    [% endblock %]
 
   </main>
 

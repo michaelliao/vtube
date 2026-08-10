@@ -1,0 +1,57 @@
+[% extends "base.html" %]
+
+[% block title %] Config [% endblock %]
+
+{# no library panel on the config page — this also skips the S.load() catalog fetch #}
+[% block library %][% endblock %]
+
+[% block main %]
+<!-- PAGE CONTENT (own app) -->
+<div id="app" v-cloak class="flex min-w-0 flex-1 flex-col gap-6">
+  <section class="flex flex-col gap-5 rounded-organic bg-surface px-8 py-10">
+    <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Configure video source</h2>
+    <div class="flex flex-col gap-2 text-[15px]">
+      <div><span class="font-semibold">Config remote url to: </span>
+        <span class="break-all text-terra-700">{{ newUrl || '(none)' }}</span>
+      </div>
+      <div><span class="font-semibold">Replace current url: </span>
+        <span class="break-all text-sand-700">{{ currentUrl }}</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button @click="onConfirm" :disabled="!newUrl"
+        class="rounded-full bg-terra-500 px-5 py-2 text-sm font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600 disabled:cursor-not-allowed disabled:opacity-50">Confirm</button>
+      <button @click="onCancel"
+        class="rounded-full border border-ink/15 bg-sand-100 px-5 py-2 text-sm font-semibold text-sand-700 hover:bg-sand-300 hover:text-ink">Cancel</button>
+    </div>
+  </section>
+</div>
+[% endblock %]
+
+[% block script %]
+<script>
+  /* vTube config page — set the CDN 'remote_url' from the ?remote_url= query.
+     No catalog is loaded here (the library block is empty, so S.load() is never
+     called); the header mounts only so the shell un-cloaks (its Library button
+     stays hidden because libraryReady is never set). */
+  const { createApp } = Vue;
+  const S = window.VTube;
+
+  createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
+
+  createApp({
+    setup() {
+      const newUrl = new URLSearchParams(location.search).get('remote_url') || '';
+      const currentUrl = S.getRemoteUrl();
+      function onConfirm() {
+        if (newUrl) S.setRemoteUrl(newUrl);   // persist, then back to browse
+        location.assign('./');
+      }
+      function onCancel() {
+        location.assign('./');                // discard, back to browse
+      }
+      return { newUrl, currentUrl, onConfirm, onCancel };
+    }
+  }).mount('#app');
+</script>
+[% endblock %]
