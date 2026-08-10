@@ -11,9 +11,12 @@ All templates are stored under `templates`, and the dev server renders a templat
 
 NOTE: the block and variable start/end symbol is changed to `[% %]` and `[[ ]]` to avoid conflict of Vue3.
 
+Check the sample site: [https://vtube.puppylab.org](https://vtube.puppylab.org)
 # Environment
 
-Create a Python venv and install the following packages:
+Create a Python venv and install the packages by `pip install -r requirements.txt`.
+
+Here is the package list:
 
 ```
 $ pip list
@@ -33,7 +36,7 @@ threadpoolctl 3.6.0
 
 # Prepare Video Source
 
-Organize all videos under a directory. For example: `free-videos`:
+Organize all videos under a directory. For example: download [free-videos](https://github.com/michaelliao/vtube/releases/download/video-sample/free-videos.zip) and unzip:
 
 ```
 free-videos
@@ -49,13 +52,14 @@ free-videos
 │  └─ dog.mp4
 ├─ Three Funny Santa Clauses/
 │  └─ t003.mp4
-└─ Traveling on the highway/
-   └─ traveling.mp4
+└─ config.json
 ```
+
+You can edit `config.json` to set CDN url, or set to `''` to use the same static server.
 
 Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory.
 
-This script also generates `config.json` and `videos.js`. You can modify the CDN config in these two files.
+This script also generate `videos.js` which contains CDN url.
 
 ## Dev mode
 
