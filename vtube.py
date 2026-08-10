@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import re, os, traceback, argparse, mimetypes, shutil, webbrowser
+import traceback, argparse, mimetypes, shutil, webbrowser
 
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from jinja2 import Environment, FileSystemLoader
 
-from videos_js import gen_video_js
-from util import load_json, write_json, scan_videos, gen_video_images, select_best_title, create_symbol_link, path_by_symbol_link
+from videos_js import gen_video_json
+from util import write_json, scan_videos, gen_video_images, select_best_title
 
 # base directory path:
 BASE_DIR = Path(__file__).resolve().parent
@@ -30,13 +30,6 @@ def render_template(templ_path: Path):
 
 class DevHTTPRequestHandler(BaseHTTPRequestHandler):
 
-    def get_cdn_path(self):
-        js_link = Path('templates/videos.js')
-        if js_link.exists():
-            js_file = path_by_symbol_link(js_link)
-            return js_file.parent
-        raise IOError('Cannot find CDN path.')
-
     def do_GET(self):
         print(f'GET: {self.path}')
         # "/help/about.html?v=1" => "help/about.html"
@@ -51,28 +44,11 @@ class DevHTTPRequestHandler(BaseHTTPRequestHandler):
             case 'video.html':
                 self.render(Path('video.html'))
                 return
-            case 'videos.js':
-                cdn_path = self.get_cdn_path()
-                js_path = cdn_path / 'videos.js'
-                print(f'Get content of videos.js from: {js_path}')
-                self.serve_file(js_path)
-                return
             case _ if not req_path_str.endswith('.html'):
                 # try static file under template dir:
                 static_file_path = TEMPLATE_DIR / req_path_str
                 if static_file_path.is_file():
                     self.serve_file(static_file_path)
-                    return
-                # try cdn file:
-                cdn_path = self.get_cdn_path()
-                cdn_file = cdn_path / req_path_str
-                if cdn_file.is_file():
-                    print(f'GET CDN file: {cdn_file}')
-                    range_header = self.headers.get('Range')
-                    if not range_header:
-                        self.serve_file(cdn_file)
-                    else:
-                        self.serve_file_by_range(cdn_file, range_header)
                     return
         # 404 error:
         self.send_error(404, f"Page not found by path: {self.path}")
@@ -85,47 +61,6 @@ class DevHTTPRequestHandler(BaseHTTPRequestHandler):
             print(f"[ERROR] Failed to render template: {templ_path}: {e}")
             traceback.print_exc()
             self.send_error(500, f'Render template error: {str(e)}')
-
-    def serve_file_by_range(self, file_path: Path, range_header: str):
-        # Parse Range header: "bytes=1000-2000" or "bytes=1000-":
-        match = re.match(r'bytes=(\d+)-(\d+)?', range_header)
-        if not match:
-            self.send_error(416, "Requested Range Not Satisfiable")
-            return None
-
-        file_size = file_path.stat().st_size
-        start = int(match.group(1))
-        end = int(match.group(2)) if match.group(2) else file_size - 1
-
-        if start >= file_size or end >= file_size or start > end:
-            self.send_error(416, f"Requested Range Not Satisfiable (File size: {file_size})")
-            return None
-
-        length = end - start + 1
-        self.send_response(206)
-        mime_type, _ = mimetypes.guess_type(file_path)
-        self.send_header("Content-Type", mime_type)
-        self.send_header("Content-Length", str(length))
-        self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
-        self.send_header("Accept-Ranges", "bytes")
-        self.end_headers()
-
-        try:
-            with open(file_path, 'rb') as f:
-                f.seek(start)
-                buffer_size = 64 * 1024
-                remaining = length
-                while remaining > 0:
-                    chunk_size = min(buffer_size, remaining)
-                    chunk = f.read(chunk_size)
-                    if not chunk:
-                        break
-                    self.wfile.write(chunk)
-                    remaining -= len(chunk)
-        except (ConnectionResetError, BrokenPipeError):
-            pass
-        except Exception as e:
-            print(f'ERROR: failed during range streaming: {file_path}: {e}')
 
     def serve_file(self, file_path: Path):
         mime_type, _ = mimetypes.guess_type(file_path)
@@ -160,22 +95,17 @@ def run_dev_server(port: int):
     except KeyboardInterrupt:
         print("\nServer stopped.")
 
-# Build mode: generate videos.js and static pages
-def build_static_site(videos_dir_name: str):
-    videos_dir = Path(videos_dir_name)
-    print(f'Generate videos.js from videos dir: {videos_dir}')
+# Build mode: generate static pages
+def build_static_site():
     dist_dir = BASE_DIR / 'dist'
     print(f"[BUILD] Build and output to: {dist_dir} ...")
-    filters = ['*.html', 'videos.js', '.*']
+    filters = ['*.html', '.*']
     shutil.copytree('templates', dist_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*filters))
     # render templates:
     for templ in ['index.html', 'video.html']:
         html = render_template(Path(templ))
         html_file = dist_dir / templ
         html_file.write_text(html, encoding='utf-8')
-    # copy videos.js:
-    js_file = videos_dir / 'videos.js'
-    shutil.copyfile(js_file, dist_dir / 'videos.js')
     print("done.")
 
 # Prepare videos: generate missing info.json, poster.jpg, thumb.jpg, thumbs.jpg:
@@ -195,22 +125,10 @@ def prepare_videos(video_root_dir: str):
             )
             write_json(i_file, info)
         gen_video_images(v_file)
- 
-    cfg_file = Path(video_root_dir) / 'config.json'
-    print(f'check config: {cfg_file}')
-    if not cfg_file.is_file():
-        print(f'  generate config: {cfg_file}')
-        write_json(cfg_file, dict(cdn=''))
-        print(f'  please update your CDN prefix in config file: {cfg_file}')
-
-    js_file = Path(video_root_dir) / 'videos.js'
-    print(f'generate js: {js_file}')
-    js_file.write_text(gen_video_js(video_root_dir))
-
-    link = Path('templates/videos.js')
-    print(f'link {link} -> {js_file}')
-    # link templates/videos.js -> video_dir/videos.js:
-    create_symbol_link(js_file, link)
+  
+    json_file = Path(video_root_dir) / 'videos.json'
+    print(f'generate json: {json_file}')
+    json_file.write_text(gen_video_json(video_root_dir))
 
 def main():
     parser = argparse.ArgumentParser(description="vtube site builder")
@@ -219,13 +137,12 @@ def main():
         '--prepare',
         default=None,
         metavar='DIR',
-        help='Prepare videos by auto-generate info.json, poster.jpg, thumb.jpg and thumbs.jpg.'
+        help='Prepare videos by auto-generate videos.json and metadata of each video.'
     )
     mode_group.add_argument(
         '--build',
-        default=None,
-        metavar='DIR',
-        help='Generate static files by specify videos diretory.'
+        action='store_true',
+        help='Generate static files.'
     )
     mode_group.add_argument(
         '--serve',
@@ -242,7 +159,7 @@ def main():
     if args.prepare:
         prepare_videos(args.prepare)
     elif args.build:
-        build_static_site(args.build)
+        build_static_site()
     elif args.serve:
         run_dev_server(port=args.serve)
     else:

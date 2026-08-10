@@ -108,28 +108,6 @@ def load_json(p: str|Path):
 def write_json(p: str|Path, obj: object):
     Path(p).write_text(json.dumps(obj, ensure_ascii=False, indent=4), encoding='utf-8')
 
-def path_by_symbol_link(symbol_link: Path) -> Path:
-    if sys.platform == "win32":
-        return Path(symbol_link.read_text(encoding='utf-8'))
-    else:
-        return symbol_link.resolve()
-
-def create_symbol_link(target: Path, symbol_link: Path):
-    if not target.exists():
-        raise FileNotFoundError(f"Target path does not exist: {target}")
-
-    # remove exist symbol_link:
-    if symbol_link.exists() or symbol_link.is_symlink():
-        symbol_link.unlink()
-
-    if sys.platform == "win32":
-        target_path = str(target.resolve())
-        symbol_link.write_text(target_path, encoding='utf-8')
-        print(f"created fake symbol link: {symbol_link} -> {target}")
-    else:
-        symbol_link.symlink_to(target)
-        print(f"created symbol link: {symbol_link} -> {target}")
-
 def run_cmd(cmd: str):
     result = subprocess.run(
         shlex.split(cmd),
