@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: 3.14
       - name: Install Dependencies
-        run: pip install jinja2
+        run: pip install -r requirements.txt
       - name: Apt Install
         run: |
           sudo apt-get update
