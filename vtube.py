@@ -176,12 +176,6 @@ def build_static_site(videos_dir_name: str):
     # copy videos.js:
     js_file = videos_dir / 'videos.js'
     shutil.copyfile(js_file, dist_dir / 'videos.js')
-    # load config:
-    cfg_json = load_json(videos_dir / 'config.json')
-    if cfg_json.cdn == '':
-        # copy all videos since there is no cdn:
-        print(f'copy all videos...')
-        shutil.copytree(videos_dir, dist_dir, dirs_exist_ok=True)
     print("done.")
 
 # Prepare videos: generate missing info.json, poster.jpg, thumb.jpg, thumbs.jpg:
