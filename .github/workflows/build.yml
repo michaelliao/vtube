@@ -34,7 +34,8 @@ jobs:
         with:
           python-version: 3.14
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        # build only require jinja2:
+        run: pip install jinja2==3.1.6
       - name: Run Build Script
         run: python vtube.py --build
       - name: Setup Pages
