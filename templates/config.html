@@ -8,17 +8,17 @@
 [% block main %]
 <!-- PAGE CONTENT (own app) -->
 <div id="app" v-cloak class="flex min-w-0 flex-1 flex-col gap-6">
-  <!-- valid remote_url: the confirm / cancel panel -->
-  <section v-if="valid" class="flex flex-col gap-5 rounded-organic bg-surface px-8 py-10">
-    <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Configure video source</h2>
-    <div class="flex flex-col gap-2 text-[15px]">
-      <div><span class="font-semibold">Config remote url to: </span>
-        <span class="break-all text-terra-700">{{ newUrl }}</span>
-      </div>
-      <div><span class="font-semibold">Replace current url: </span>
-        <span class="break-all text-sand-700">{{ currentUrl }}</span>
-      </div>
-    </div>
+
+  <!-- Add New Video Source: input is prefilled from ?remote_url= but editable;
+       the url is validated only when Confirm is clicked -->
+  <section class="flex flex-col gap-4 rounded-organic bg-surface px-8 py-8">
+    <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Add New Video Source</h2>
+    <label class="flex flex-col gap-2 text-[15px]">
+      <span class="font-semibold">Video source:</span>
+      <input v-model="inputUrl" @input="error = ''" type="text" placeholder="http://xxx/"
+        class="w-full rounded-full border border-ink/15 bg-sand-100 px-4 py-2 text-sm text-ink outline-none focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-terra-500" />
+    </label>
+    <div v-if="error" class="text-sm font-semibold text-terra-700">{{ error }}</div>
     <div class="flex items-center gap-3">
       <button @click="onConfirm"
         class="rounded-full bg-terra-500 px-5 py-2 text-sm font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600">Confirm</button>
@@ -27,12 +27,25 @@
     </div>
   </section>
 
-  <!-- empty or invalid remote_url: error only, the panel (and its buttons) is hidden -->
-  <section v-else
-    class="flex flex-col items-center gap-4 rounded-organic bg-terra-100 px-8 py-12 text-center text-terra-700">
-    <div class="text-lg font-semibold">{{ error }}</div>
-    <a href="./"
-      class="rounded-full border border-terra-300 bg-terra-200 px-5 py-2 text-sm font-semibold !text-terra-700 hover:bg-terra-300 hover:!no-underline">Back to browse</a>
+  <!-- Video Sources: the known list; the active one is marked, others can be used/removed -->
+  <section class="flex flex-col gap-4 rounded-organic bg-surface px-8 py-8">
+    <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Video Sources</h2>
+    <div class="flex flex-col divide-y divide-ink/10">
+      <div v-for="url in sources" :key="url" class="flex items-center justify-between gap-4 py-3">
+        <span class="break-all text-[15px]"
+          :class="url === currentUrl ? 'font-semibold text-terra-700' : 'text-sand-800'">{{ url }}</span>
+        <div class="flex shrink-0 items-center gap-2">
+          <span v-if="url === currentUrl"
+            class="rounded-full bg-sage-200 px-3 py-1 text-[13px] font-semibold text-sage-700">Active</span>
+          <template v-else>
+            <button @click="useSource(url)"
+              class="rounded-full bg-terra-500 px-4 py-1.5 text-[13px] font-semibold text-terra-100 hover:bg-terra-400 active:bg-terra-600">Use</button>
+            <button @click="removeSource(url)"
+              class="rounded-full border border-ink/15 bg-sand-100 px-4 py-1.5 text-[13px] font-semibold text-sand-700 hover:bg-sand-300 hover:text-ink">Remove</button>
+          </template>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 [% endblock %]
@@ -43,27 +56,46 @@
      No catalog is loaded here (the library block is empty, so S.load() is never
      called); the header mounts only so the shell un-cloaks (its Library button
      stays hidden because libraryReady is never set). */
-  const { createApp } = Vue;
+  const { createApp, ref } = Vue;
   const S = window.VTube;
 
   createApp({ setup: () => ({ ui: S.ui }) }).mount('#header-app');
 
   createApp({
     setup() {
-      const newUrl = new URLSearchParams(location.search).get('remote_url') || '';
       const currentUrl = S.getRemoteUrl();
-      const valid = /^https?:\/\//i.test(newUrl);   // must start with http:// or https://
-      const error = !newUrl
-        ? 'No remote_url given.'
-        : (!valid ? 'Invalid remote_url — it must start with http:// or https://' : '');
+
+      /* Add form: input prefilled from ?remote_url= (may be invalid/empty), editable.
+         Validation happens only on Confirm. */
+      const inputUrl = ref(new URLSearchParams(location.search).get('remote_url') || '');
+      const error = ref('');
       function onConfirm() {
-        S.setRemoteUrl(newUrl);   // only reachable when valid; persist, then back to browse
+        const url = inputUrl.value.trim();
+        if (!/^https?:\/\//i.test(url)) {
+          error.value = 'Invalid url — it must start with http:// or https://';
+          return;
+        }
+        S.setRemoteUrl(url);      // persist (active + history), then back to browse
         location.assign('./');
       }
       function onCancel() {
         location.assign('./');    // discard, back to browse
       }
-      return { newUrl, currentUrl, valid, error, onConfirm, onCancel };
+
+      /* Video Sources list — current url first, the rest unique */
+      const sources = ref([currentUrl].concat(S.getRemoteUrlList().filter(u => u !== currentUrl)));
+      function useSource(url) {
+        if (!window.confirm('Use this video source?\n' + url)) return;
+        S.setRemoteUrl(url);      // make active + record, then back to browse
+        location.assign('./');
+      }
+      function removeSource(url) {
+        if (!window.confirm('Remove this video source?\n' + url)) return;
+        sources.value = sources.value.filter(u => u !== url);
+        S.setRemoteUrlList(sources.value);
+      }
+
+      return { currentUrl, inputUrl, error, onConfirm, onCancel, sources, useSource, removeSource };
     }
   }).mount('#app');
 </script>

@@ -29,6 +29,7 @@
   const KEY_PLAYER = 'vtube_player';
   const KEY_LIBRARY = 'vtube_library';
   const KEY_REMOTE = 'remote_url';
+  const KEY_REMOTE_LIST = 'remote_url_list';
   const HISTORY_MAX = 10;
   const FAVORITES_MAX = 10;
 
@@ -172,8 +173,25 @@
   function getRemoteUrl() {
     try { return localStorage.getItem(KEY_REMOTE) || DEFAULT_REMOTE; } catch (err) { return DEFAULT_REMOTE; }
   }
+  /* the known remote_url list (history). When nothing is stored yet, seed it
+     with [DEFAULT] AND persist it, so the default survives a later setRemoteUrl. */
+  function getRemoteUrlList() {
+    try {
+      const list = JSON.parse(localStorage.getItem(KEY_REMOTE_LIST) || '[]');
+      if (Array.isArray(list) && list.length) return list;
+    } catch (err) { }
+    setRemoteUrlList([DEFAULT_REMOTE]);
+    return [DEFAULT_REMOTE];
+  }
+  /* persist the list, keeping items unique (first occurrence wins) */
+  function setRemoteUrlList(list) {
+    const uniq = [];
+    (list || []).forEach(u => { if (u && uniq.indexOf(u) === -1) uniq.push(u); });
+    try { localStorage.setItem(KEY_REMOTE_LIST, JSON.stringify(uniq)); } catch (err) { }
+  }
   function setRemoteUrl(url) {
     try { localStorage.setItem(KEY_REMOTE, url); } catch (err) { }
+    setRemoteUrlList([url].concat(getRemoteUrlList()));   // record in history (front, unique)
   }
   /* reveal the plain (non-Vue) #error-app banner in base.html on load failure */
   function showLoadError(url) {
@@ -238,6 +256,7 @@
     KEY_HISTORY: KEY_HISTORY, KEY_FAVORITE: KEY_FAVORITE,
     HISTORY_MAX: HISTORY_MAX, FAVORITES_MAX: FAVORITES_MAX,
     load: load, getRemoteUrl: getRemoteUrl, setRemoteUrl: setRemoteUrl,
+    getRemoteUrlList: getRemoteUrlList, setRemoteUrlList: setRemoteUrlList,
     videos: videos, categories: categories, tags: tags, ui: ui,
     categoryCount: categoryCount, tagCount: tagCount,
     getVideo: getVideo, suggestionsFor: suggestionsFor,
