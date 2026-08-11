@@ -22,7 +22,13 @@ Because the pages carry no data, the video source is fully decoupled from the si
 
 ## How to Build Video Source
 
-Create a Python venv and install the packages by `pip install -r requirements.txt`.
+Install FFMPEG. Download or install by command:
+
+- Linux: `apt install ffmpeg`
+- macOS: `brew install ffmpeg`
+- Windows: `scoop install ffmpeg`
+
+Install Python >= 3.14, create a Python venv and install the packages by `pip install -r requirements.txt`.
 
 Here is the package list:
 
@@ -58,28 +64,28 @@ Check the sample site: [https://vtube.puppylab.org](https://vtube.puppylab.org)
 Organize all videos under a directory. For example:
 
 ```
-videos/
+free-videos/
 ├─ a-herd-of-lions-walking/
 │  └─ vid-12345.mp4
 ├─ a-private-jet-taking-off/
 │  └─ video.mp4
 ├─ african-elephants-walking-on-a-dusty-ground/
-│  └─ video(2).mp4
+│  └─ video (2).mp4
 ├─ airplane-landing-rear-view/
 │  └─ unnamed.mp4
 └─ ...
 ```
 
-Run `python vtube.py --prepare videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory and a global `videos.json`:
+Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory and a global `videos.json`:
 
 ```
-videos/
+free-videos/
 ├─ a-herd-of-lions-walking/
 │  ├─ info.json
 │  ├─ poster.jpg
 │  ├─ thumb.jpg
 │  ├─ thumbs.jpg
-│  └─ video.mp4
+│  └─ vid-12345.mp4
 ├─ a-private-jet-taking-off/
 │  ├─ info.json
 │  ├─ poster.jpg
@@ -91,7 +97,7 @@ videos/
 │  ├─ poster.jpg
 │  ├─ thumb.jpg
 │  ├─ thumbs.jpg
-│  └─ v12345.mp4
+│  └─ video (2).mp4
 ├─ airplane-landing-rear-view/
 │  ├─ info.json
 │  ├─ poster.jpg
@@ -106,7 +112,7 @@ videos/
 
 The prepared directory is served by a CDN. For local testing, vTube includes a simple CDN server with CORS and HTTP range support (needed for video seeking):
 
-Use `python vtube.py --source videos` to serve the directory (default port `5001`, override with `--port`). It exposes `videos.json` and the media assets, e.g. `http://localhost:5001/videos.json`.
+Use `python vtube.py --source free-videos` to serve the directory (default port `5001`, override with `--port`). It exposes `videos.json` and the media assets, e.g. `http://localhost:5001/videos.json`.
 
 To test your local CDN, visit [https://vtube.puppylab.org/config.html?remote_url=http://localhost:5001/](https://vtube.puppylab.org/config.html?remote_url=http://localhost:5001/) to add local CDN as a video source.
 
@@ -115,10 +121,10 @@ To test your local CDN, visit [https://vtube.puppylab.org/config.html?remote_url
 Use `rclone` to upload video source to cloud storage. Here is an example to upload video source to CloudFlare R2:
 
 ```
-$ rclone sync ./videos r2:vtube-sample/videos --progress
+$ rclone sync ./free-videos r2:vtube-sample/free-videos --progress
 ```
 
-The video source url is `https://your-cdn/videos/`.
+The video source url is `https://your-cdn/free-videos/`.
 
 ## Development
 
