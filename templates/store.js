@@ -198,7 +198,7 @@
     const box = global.document && global.document.getElementById('error-app');
     if (!box) return;
     const msg = box.querySelector('.error-message');
-    if (msg) msg.textContent = 'Failed load video catelog from ' + url;
+    if (msg) msg.textContent = 'Failed load video source from ' + url;
     box.style.display = '';
   }
   let loadPromise = null;
