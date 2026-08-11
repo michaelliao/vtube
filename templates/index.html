@@ -91,11 +91,13 @@
     </div>
 
     <div class="grid gap-5" :style="{ gridTemplateColumns: gridTracks }">
-      <article v-for="v in filtered" :key="v.id" @click="showVideo(v.id)" class="flex cursor-pointer flex-col gap-3">
+      <article v-for="v in filtered" :key="v.id" class="flex flex-col gap-3">
         <div
           class="group relative aspect-[16/10] overflow-hidden rounded-organic bg-surface shadow-[0_3px_10px_rgba(46,43,37,0.16)]">
-          <div class="h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
-            :style="{ backgroundImage: 'url(' + thumbUrl(v) + ')' }"></div>
+          <a v-bind:href="`video.html?id=${v.id}`"
+            class="block h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
+            :style="{ backgroundImage: 'url(' + thumbUrl(v) + ')' }">
+          </a>
           <span
             class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs font-semibold text-sand-100">{{
             fmt(v.duration) }}</span>
@@ -115,7 +117,10 @@
           <h4 class="mb-1 text-lg font-semibold leading-tight">
             <a v-bind:href="`video.html?id=${v.id}`">{{ v.name }}</a>
           </h4>
-          <div class="text-[13px] text-sand-700">{{ v.category }} · {{ fmt(v.duration) }}</div>
+          <div class="text-[13px] text-sand-700">
+            <a v-bind:href="`?category=${v.category}`">{{ v.category }}</a>
+            · {{ fmt(v.duration) }}
+          </div>
         </div>
       </article>
       <div v-if="!filtered.length"
