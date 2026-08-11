@@ -1,19 +1,24 @@
 # vTube
 
-vTube is a video site generator. It generates simple static web site by a set of videos.
+[vTube](https://vtube.puppylab.org/) is a static video site but can connect to any video source.
 
-vTube provides a dev server to preview web pages:
+## Configure video source
 
-- `/`: index page, mapping to `index.html`;
-- `/video.html?id=[id]`: video playing page, mapping to `video.html`.
+The site fetches `videos.json` from `<remote_url>/videos.json`. Open [config](https://vtube.puppylab.org/config.html) to add or select a `remote_url`; it is saved in localStorage (keeping a history of used URLs).
 
-All templates are stored under `templates`, and the dev server renders a template to HTML by jinja2.
+## Architecture
 
-NOTE: the block and variable start/end symbol is changed to `[% %]` and `[[ ]]` to avoid conflict of Vue3.
+**vTube is only static pages, yet it can connect to any video source.**
 
-Check the sample site: [https://vtube.puppylab.org](https://vtube.puppylab.org)
+The site is pure static HTML + JavaScript with no backend of its own. It holds no video data — instead it fetches everything (`videos.json` plus the media assets: video / poster / thumbnails) at runtime from a CDN, whose base URL (`remote_url`) is stored in the browser's localStorage.
 
-## Environment
+Because the pages carry no data, the video source is fully decoupled from the site. **Point `remote_url` at a different CDN and the very same deployed pages become a completely fresh catalog of videos** — a brand-new site to browse and watch, with no rebuild and no redeploy. Just switch the video source (on the config page) and refresh.
+
+## Privacy
+
+**All your data stays on your device — nothing is ever shared.** Since vTube has no backend, there is nowhere to send it. Your watch history and favorites live only in the browser's localStorage; they are never uploaded, tracked, or shared with any server (not even the CDN, which only serves videos). Clear your browser storage and it is gone for good.
+
+## How to Build Video Source
 
 Create a Python venv and install the packages by `pip install -r requirements.txt`.
 
@@ -29,33 +34,44 @@ joblib        1.5.3
 MarkupSafe    3.0.3
 narwhals      2.24.0
 numpy         2.5.1
-pip           25.2
 scikit-learn  1.9.0
 scipy         1.18.0
 threadpoolctl 3.6.0
 ```
 
-## Prepare Video Source
+vTube provides a dev server to preview web pages:
 
-Organize all videos under a directory. For example: download [free-videos](https://github.com/michaelliao/vtube/releases/download/video-sample/free-videos.zip) and unzip:
+- `/`: index page, mapping to `index.html`;
+- `/video.html?id=[id]`: video playing page, mapping to `video.html`;
+- `/config.html`: config page to set the video source (`remote_url`), mapping to `config.html`.
+
+All templates are stored under `templates`, and the dev server renders a template to HTML by jinja2.
+
+NOTE: the block and variable start/end symbol is changed to `[% %]` and `[[ ]]` to avoid conflict of Vue3.
+
+Check the sample site: [https://vtube.puppylab.org](https://vtube.puppylab.org)
+
+### Prepare Video Source
+
+Organize all videos under a directory. For example:
 
 ```
-free-videos/
+videos/
 ├─ a-herd-of-lions-walking/
-│  └─ video.mp4
+│  └─ vid-12345.mp4
 ├─ a-private-jet-taking-off/
 │  └─ video.mp4
 ├─ african-elephants-walking-on-a-dusty-ground/
-│  └─ v12345.mp4
+│  └─ video(2).mp4
 ├─ airplane-landing-rear-view/
 │  └─ unnamed.mp4
 └─ ...
 ```
 
-Run `python vtube.py --prepare free-videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory and a global `videos.json`:
+Run `python vtube.py --prepare videos` to generate `info.json`, `poster.jpg`, `thumb.jpg` and `thumbs.jpg` under each sub-directory and a global `videos.json`:
 
 ```
-free-videos/
+videos/
 ├─ a-herd-of-lions-walking/
 │  ├─ info.json
 │  ├─ poster.jpg
@@ -84,9 +100,31 @@ free-videos/
 └─ videos.json
 ```
 
-## Dev mode
+### Serve video source (local CDN)
 
-Use `python vtube.py --serve` to start dev mode.
+The prepared directory is served by a CDN. For local testing, vTube includes a simple CDN server with CORS and HTTP range support (needed for video seeking):
+
+Use `python vtube.py --source videos` to serve the directory (default port `5001`, override with `--port`). It exposes `videos.json` and the media assets, e.g. `http://localhost:5001/videos.json`.
+
+To test your local CDN, visit [https://vtube.puppylab.org/config.html?remote_url=http://localhost:5001/](https://vtube.puppylab.org/config.html?remote_url=http://localhost:5001/) to add local CDN as a video source.
+
+### Upload to CDN
+
+Use `rclone` to upload video source to cloud storage. Here is an example to upload video source to CloudFlare R2:
+
+```
+$ rclone sync ./videos r2:vtube-sample/videos --progress
+```
+
+The video source url is `https://your-cdn/videos/`.
+
+## Development
+
+You can build your own static site based on the templates of vTube.
+
+### Dev mode
+
+Use `python vtube.py --serve` to start the dev server (default port `5000`, override with `--port`). It renders `index.html`, `video.html` and `config.html`, and serves the other static files (`store.js`, `favicon.ico`, ...) from `templates`.
 
 ## Build mode
 
@@ -96,16 +134,9 @@ What you get:
 
 ```
 dist/
+├─ config.html
 ├─ index.html
 ├─ video.html
 ├─ store.js
 └─ favicon.ico
 ```
-
-## Note
-
-The static website generated by vTube contains only 2 HTML files and the necessary JavaScript files.
-
-The recommended videos for the playing video have been pre-calculated and stored in JavaScript.
-
-Please note the search engines cannot index the videos because vTube loads all videos by pre-generated JavaScript file.
