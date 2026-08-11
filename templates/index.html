@@ -48,7 +48,7 @@
         <div class="flex min-w-0 flex-1 flex-wrap gap-2">
           <button v-for="c in categories" :key="c.name" @click="category = c.name"
             :class="category === c.name ? 'border-terra-500 bg-terra-500 text-terra-100' : 'border-ink/15 bg-sand-100 text-sand-700 hover:bg-sand-300 hover:text-ink'"
-            class="shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-semibold">
+            class="cursor-pointer shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-semibold">
             {{ c.name }} <span class="tabular-nums"
               :class="category === c.name ? 'text-terra-200' : 'text-sand-600'">({{ c.count }})</span>
           </button>
@@ -66,7 +66,7 @@
         <div class="flex min-w-0 flex-1 flex-wrap gap-2">
           <button v-for="t in visibleTags" :key="t.name" @click="toggleTag(t.name)"
             :class="tags.includes(t.name) ? 'border-sage-700 bg-sage-500 text-sage-100' : 'border-ink/15 text-sand-700 hover:bg-sand-300 hover:text-ink'"
-            class="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-semibold">
+            class="cursor-pointer shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-semibold">
             {{ t.name }} <span class="tabular-nums"
               :class="tags.includes(t.name) ? 'text-sage-200' : 'text-sand-600'">({{ t.count }})</span>
           </button>

@@ -53,8 +53,7 @@
 
     a:hover {
       color: #c67139;
-      text-decoration: underline;
-      text-underline-offset: 3px;
+      text-decoration: none;
     }
 
     :focus-visible {
@@ -81,7 +80,7 @@
   <header id="header-app" v-cloak
     class="sticky top-0 z-20 shrink-0 min-w-[1344px] border-b border-ink/10 bg-bg/90 backdrop-blur">
     <div class="mx-auto w-[1344px] px-8 py-3.5 flex items-center gap-4">
-      <a href="./" class="flex items-center gap-2.5 !text-ink hover:!no-underline">
+      <a href="./" class="flex items-center gap-2.5 !text-ink">
         <span class="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-terra-500 text-terra-100">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="6 3 20 12 6 21 6 3" />
@@ -155,8 +154,8 @@
             </span>
           </button>
           <div v-show="ui.historyOpen" class="flex flex-col gap-3">
-            <div v-for="e in historyRows" :key="e.video.id" @click="showVideo(e.video.id)"
-              class="flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
+            <a v-for="e in historyRows" :key="e.video.id" v-bind:href="`video.html?id=${e.video.id}`"
+              class="block flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
               <div class="aspect-[16/10] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-sand-300 text-sand-600">
                 <div class="h-full w-full bg-cover bg-center"
                   :style="{ backgroundImage: 'url(' + thumbUrl(e.video) + ')' }"></div>
@@ -167,7 +166,7 @@
                 </div>
                 <div class="text-xs text-sand-700">{{ e.when }}</div>
               </div>
-              <button @click.stop="toggleFavorite(e.video.id)" aria-label="Toggle favorite"
+              <button @click.prevent.stop="toggleFavorite(e.video.id)" aria-label="Toggle favorite"
                 :class="isFavorite(e.video.id) ? 'bg-terra-200 text-terra-700 hover:bg-terra-300' : 'text-sand-600 hover:bg-sand-400/40 hover:text-terra-700'"
                 class="grid h-7 w-7 shrink-0 place-items-center rounded-full">
                 <svg v-if="isFavorite(e.video.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -178,7 +177,7 @@
                   <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
                 </svg>
               </button>
-            </div>
+            </a>
             <div v-if="!historyRows.length" class="px-1.5 text-[13px] text-sand-700">Nothing watched yet — pick a film
               below.</div>
             <div class="flex items-center justify-between gap-2 pl-1.5 pt-0.5">
@@ -197,8 +196,8 @@
               }}</span>
           </div>
           <div class="flex flex-col gap-3">
-            <div v-for="e in favoriteRows" :key="e.video.id" @click="showVideo(e.video.id)"
-              class="flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
+            <a v-for="e in favoriteRows" :key="e.video.id" v-bind:href="`video.html?id=${e.video.id}`"
+              class="block flex cursor-pointer items-center gap-2 rounded-[20px] p-1.5 hover:bg-sand-300">
               <div class="aspect-[16/10] w-[52px] shrink-0 overflow-hidden rounded-[12px] bg-sand-300 text-sand-600">
                 <div class="h-full w-full bg-cover bg-center"
                   :style="{ backgroundImage: 'url(' + thumbUrl(e.video) + ')' }"></div>
@@ -207,13 +206,13 @@
                 <div class="truncate text-sm font-semibold leading-tight">{{ e.video.name }}</div>
                 <div class="text-xs text-sand-700">{{ e.video.category }} · {{ fmt(e.video.duration) }}</div>
               </div>
-              <button @click.stop="toggleFavorite(e.video.id)" aria-label="Remove from favorites"
+              <button @click.prevent.stop="toggleFavorite(e.video.id)" aria-label="Remove from favorites"
                 class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-terra-200 text-terra-700 hover:bg-terra-300">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
                 </svg>
               </button>
-            </div>
+            </a>
             <div v-if="!favoriteRows.length" class="px-1.5 text-[13px] text-sand-700">No favorites yet — tap a heart on
               any film.</div>
             <div v-if="notice"
@@ -280,17 +279,16 @@
   <!-- FOOTER -->
   <footer class="sticky bottom-0 z-20 shrink-0 min-w-[1344px] border-t border-sand-100/10 bg-ink text-sand-100">
     <div class="mx-auto flex w-[1344px] items-center gap-5 px-8 py-3">
-      <span class="shrink-0 text-[15px] font-semibold">vTube</span>
-      <span class="text-[13px] text-sand-500">
+      <a href="." class="shrink-0 text-[15px] font-semibold !text-sage-300 hover:!text-sage-200">vTube</a>
+      <span class="text-[13px] text-sand-400">
         <span style="display: inline-block; transform: scaleX(-1);">©</span> copyleft 2026.
       </span>
       <div class="flex-1"></div>
       <div class="flex shrink-0 items-center gap-4 text-[13px]">
-        <a href="config.html" class="!text-sage-300 hover:!text-sage-200 hover:!no-underline">Config</a>
-        <a href="https://github.com/michaelliao/vtube"
-          class="!text-sage-300 hover:!text-sage-200 hover:!no-underline">Open Source</a>
+        <a href="config.html" class="!text-sage-300 hover:!text-sage-200">Config</a>
+        <a href="https://github.com/michaelliao/vtube" class="!text-sage-300 hover:!text-sage-200">Open Source</a>
         <a href="https://github.com/michaelliao/vtube/blob/main/LICENSE"
-          class="!text-sage-300 hover:!text-sage-200 hover:!no-underline">License</a>
+          class="!text-sage-300 hover:!text-sage-200">License</a>
       </div>
     </div>
   </footer>
