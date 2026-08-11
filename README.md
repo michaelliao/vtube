@@ -142,9 +142,9 @@ What you get:
 
 ```
 dist/
-├─ config.html
 ├─ index.html
 ├─ video.html
-├─ store.js
-└─ favicon.ico
+├─ config.html
+├─ favicon.ico
+└─ *.js
 ```
