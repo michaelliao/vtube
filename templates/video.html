@@ -167,20 +167,20 @@
         </div>
       </div>
       <div class="grid gap-5" :style="{ gridTemplateColumns: gridTracks }">
-        <article v-for="item in continueList" :key="item.video.id" @click="showVideo(item.video.id)"
-          class="flex cursor-pointer flex-col gap-3">
+        <article v-for="v in continueList" :key="v.id" class="flex flex-col gap-3">
           <div
             class="group relative aspect-[16/10] overflow-hidden rounded-organic bg-surface shadow-[0_3px_10px_rgba(46,43,37,0.16)]">
-            <div
-              class="h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
-              :style="{ backgroundImage: 'url(' + thumbUrl(item.video) + ')' }"></div>
+            <a v-bind:href="`video.html?id=${v.id}`"
+              class="block h-full w-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-120"
+              :style="{ backgroundImage: 'url(' + thumbUrl(v) + ')' }">
+            </a>
             <span
               class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs font-semibold text-sand-100">{{
-              fmt(item.video.duration) }}</span>
-            <button @click.stop="toggleFavorite(item.video.id, $event)" aria-label="Toggle favorite"
-              :class="isFavorite(item.video.id) ? 'bg-terra-500 text-terra-100 hover:bg-terra-400' : 'bg-ink/60 text-sand-100 hover:bg-ink/80'"
+              fmt(v.duration) }}</span>
+            <button @click.stop="toggleFavorite(v.id, $event)" aria-label="Toggle favorite"
+              :class="isFavorite(v.id) ? 'bg-terra-500 text-terra-100 hover:bg-terra-400' : 'bg-ink/60 text-sand-100 hover:bg-ink/80'"
               class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full">
-              <svg v-if="isFavorite(item.video.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <svg v-if="isFavorite(v.id)" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 20s-7-4.6-7-9.4A4 4 0 0 1 12 8a4 4 0 0 1 7 2.6C19 15.4 12 20 12 20Z" />
               </svg>
               <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -191,9 +191,12 @@
           </div>
           <div>
             <h4 class="mb-1 text-lg font-semibold leading-tight">
-              <a v-bind:href="`video.html?id=${item.video.id}`">{{ item.video.name }}</a>
+              <a v-bind:href="`video.html?id=${v.id}`">{{ v.name }}</a>
             </h4>
-            <div class="text-[13px] text-sand-700">{{ item.video.category }} · {{ fmt(item.video.duration) }}</div>
+            <div class="text-[13px] text-sand-700">
+              <a v-bind:href="`?category=${v.category}`">{{ v.category }}</a>
+              · {{ fmt(v.duration) }}
+            </div>
           </div>
         </article>
       </div>
@@ -260,7 +263,7 @@
       const scrub = reactive({ visible: false, left: 0, pos: '0px 0px', time: '0:00' });
 
       const gridTracks = computed(() => 'repeat(' + (S.ui.libraryOpen ? 3 : 4) + ', minmax(0, 1fr))');
-      const continueList = computed(() => S.suggestionsFor(nowPlaying.value && nowPlaying.value.id).map(v => ({ video: v })));
+      const continueList = computed(() => S.suggestionsFor(nowPlaying.value && nowPlaying.value.id));
       const progressPct = computed(() => duration.value ? (currentTime.value / duration.value) * 100 : 0);
 
       /* ---------- favorites ---------- */
