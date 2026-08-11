@@ -14,7 +14,7 @@ The site is pure static HTML + JavaScript with no backend of its own. It holds n
 
 Because the pages carry no data, the video source is fully decoupled from the site. **Point `remote_url` at a different CDN and the very same deployed pages become a completely fresh catalog of videos** — a brand-new site to browse and watch, with no rebuild and no redeploy. Just switch the video source (on the config page) and refresh.
 
-Try another video source by [config new video source](https://vtube.puppylab.org/config.html?remote_url=https://cdn.vtube.puppylab.org/featured-videos/).
+Try another video source by [config new video source](https://vtube.puppylab.org/config.html?remote_url=https://cdn.vtube.puppylab.org/free-videos/).
 
 ## Privacy
 
