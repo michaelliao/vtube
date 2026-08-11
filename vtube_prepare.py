@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 '''
-util for other script.
+Process video source.
+
+python vtube_prepare.py --prepare <path>
 '''
 
-import re, hashlib, json, shlex, subprocess, unicodedata
-
+import re, json, hashlib, argparse, shlex, subprocess, unicodedata
 from pathlib import Path
 from urllib.parse import quote
 
@@ -283,6 +284,43 @@ def gen_video_json(videos_dir:str|Path):
 
     return json.dumps(data, ensure_ascii=False)
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+# Prepare videos: generate missing info.json, poster.jpg, thumb.jpg, thumbs.jpg:
+def prepare_videos(video_root_dir: str):
+    v_files = scan_videos(video_root_dir)
+    for v_file in v_files:
+        print(f'check video: {v_file}')
+        i_file = v_file.with_name('info.json')
+        if not i_file.is_file():
+            print(f'  generate info: {i_file}')
+            v_name = v_file.name
+            d_name = v_file.parent.name
+            info = dict(
+                name = select_best_title(v_name, d_name),
+                category = 'Default',
+                tags = ['Sample']
+            )
+            write_json(i_file, info)
+        gen_video_images(v_file)
+  
+    json_file = Path(video_root_dir) / 'videos.json'
+    print(f'generate json: {json_file}')
+    json_file.write_text(gen_video_json(video_root_dir))
+
+def main():
+    parser = argparse.ArgumentParser(description="vtube video source builder")
+    parser.add_argument(
+        '--prepare',
+        default=None,
+        metavar='DIR',
+        help='Prepare videos by auto-generate videos.json and metadata of each video.'
+    )
+
+    args = parser.parse_args()
+
+    if args.prepare:
+        prepare_videos(args.prepare)
+    else:
+        parser.print_help()
+
+if __name__ == '__main__':
+    main()
