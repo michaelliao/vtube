@@ -205,7 +205,7 @@ def build_static_site():
     filters = ['*.html', '.*']
     shutil.copytree('templates', dist_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*filters))
     # render templates:
-    for templ in ['index.html', 'video.html']:
+    for templ in ['index.html', 'video.html', 'config.html']:
         html = render_template(Path(templ))
         html_file = dist_dir / templ
         html_file.write_text(html, encoding='utf-8')
