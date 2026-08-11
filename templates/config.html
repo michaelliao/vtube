@@ -15,7 +15,7 @@
     <h2 class="text-[28px] font-semibold leading-tight tracking-tight">Add New Video Source</h2>
     <label class="flex flex-col gap-2 text-[15px]">
       <span class="font-semibold">Video source:</span>
-      <input v-model="inputUrl" @input="error = ''" type="text" placeholder="http://xxx/"
+      <input v-model="inputUrl" @input="error = ''" type="text" placeholder="https://your-video-cdn/"
         class="w-full rounded-full border border-ink/15 bg-sand-100 px-4 py-2 text-sm text-ink outline-none focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-terra-500" />
     </label>
     <div v-if="error" class="text-sm font-semibold text-terra-700">{{ error }}</div>
