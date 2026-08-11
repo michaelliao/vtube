@@ -8,6 +8,7 @@ python vtube_cdn.py --source <path> --port 5001
 
 import re, argparse, mimetypes
 
+from urllib.parse import unquote
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
@@ -21,7 +22,7 @@ class CdnHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # "/help/about.html?v=1" => "help/about.html"
-        req_path_str = self.path.split('?')[0].lstrip('/')
+        req_path_str = unquote(self.path.split('?')[0].lstrip('/'))
         cdn_file = cdn_web_root / req_path_str
         print(f'try cdn file: {cdn_file}')
         if not cdn_file.is_file():

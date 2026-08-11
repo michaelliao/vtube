@@ -242,6 +242,7 @@ def gen_video_json(videos_dir:str|Path):
         if v_name in video_name_set:
             print(f'WARNING: duplidate video name: {v_name}')
             continue
+        print(f'video name: {v_name}')
         video_name_set.add(v_name)
         vmeta = get_video_meta(v_file)
         # video relative path as url:
@@ -259,6 +260,7 @@ def gen_video_json(videos_dir:str|Path):
         ))
 
     print(f"loaded {len(videos)} videos.")
+    print(videos)
 
     # generate category and tags:
     categories = DotDict()
@@ -304,7 +306,7 @@ def prepare_videos(video_root_dir: str):
   
     json_file = Path(video_root_dir) / 'videos.json'
     print(f'generate json: {json_file}')
-    json_file.write_text(gen_video_json(video_root_dir))
+    json_file.write_text(gen_video_json(video_root_dir), encoding='utf-8')
 
 def main():
     parser = argparse.ArgumentParser(description="vtube video source builder")
