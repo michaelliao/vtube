@@ -14,6 +14,8 @@ The site is pure static HTML + JavaScript with no backend of its own. It holds n
 
 Because the pages carry no data, the video source is fully decoupled from the site. **Point `remote_url` at a different CDN and the very same deployed pages become a completely fresh catalog of videos** — a brand-new site to browse and watch, with no rebuild and no redeploy. Just switch the video source (on the config page) and refresh.
 
+Try another video source by [config new video source](https://vtube.puppylab.org/config.html?remote_url=https://cdn.vtube.puppylab.org/featured-videos/).
+
 ## Privacy
 
 **All your data stays on your device — nothing is ever shared.** Since vTube has no backend, there is nowhere to send it. Your watch history and favorites live only in the browser's localStorage; they are never uploaded, tracked, or shared with any server (not even the CDN, which only serves videos). Clear your browser storage and it is gone for good.
