@@ -6,6 +6,8 @@
 
 The site fetches `videos.json` from `<remote_url>/videos.json`. Open [config](https://vtube.puppylab.org/config.html) to add or select a `remote_url`; it is saved in localStorage (keeping a history of used URLs).
 
+Try another video source by [config new video source](https://vtube.puppylab.org/config.html?remote_url=https://cdn.vtube.puppylab.org/free-videos/).
+
 ## Architecture
 
 **vTube is only static pages, yet it can connect to any video source.**
@@ -13,8 +15,6 @@ The site fetches `videos.json` from `<remote_url>/videos.json`. Open [config](ht
 The site is pure static HTML + JavaScript with no backend of its own. It holds no video data — instead it fetches everything (`videos.json` plus the media assets: video / poster / thumbnails) at runtime from a CDN, whose base URL (`remote_url`) is stored in the browser's localStorage.
 
 Because the pages carry no data, the video source is fully decoupled from the site. **Point `remote_url` at a different CDN and the very same deployed pages become a completely fresh catalog of videos** — a brand-new site to browse and watch, with no rebuild and no redeploy. Just switch the video source (on the config page) and refresh.
-
-Try another video source by [config new video source](https://vtube.puppylab.org/config.html?remote_url=https://cdn.vtube.puppylab.org/free-videos/).
 
 ## Privacy
 
