@@ -2,6 +2,22 @@
 
 [vTube](https://vtube.puppylab.org/) is a static video site but can connect to any video source.
 
+```plain
+                    ┌───────────────────────────┐
+                    │           vTube           │
+                    │https://vtube.puppylab.org │
+                    └───────────────────────────┘
+                                  │
+                                  │
+           ┌──────────────────────┼──────────────────────┐
+           │                      │                      │
+           ▼                      ▼                      ▼
+┌─────────────────────┐┌─────────────────────┐┌─────────────────────┐
+│   Video Source 1    ││   Video Source 2    ││   Video Source 3    │
+│https://example1.com ││https://example2.com ││https://example3.com │
+└─────────────────────┘└─────────────────────┘└─────────────────────┘
+```
+
 ## Configure video source
 
 The site fetches `videos.json` from `<remote_url>/videos.json`. Open [config](https://vtube.puppylab.org/config.html) to add or select a `remote_url`; it is saved in localStorage (keeping a history of used URLs).
