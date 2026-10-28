@@ -171,6 +171,7 @@ def scan_videos(pdir: str|Path):
                 print(f'WARN: multiple mp4 found under {d}. will only pick the first one.')
                 mp4_files.sort()
             found.append(mp4_files[0])
+            print(f'found video: {mp4_files[0]}')
     return found
 
 def _dump_counters(counters: dict):
@@ -288,6 +289,7 @@ def gen_video_json(videos_dir:str|Path):
 
 # Prepare videos: generate missing info.json, poster.jpg, thumb.jpg, thumbs.jpg:
 def prepare_videos(video_root_dir: str):
+    print(f'scan videos under {video_root_dir}...')
     v_files = scan_videos(video_root_dir)
     for v_file in v_files:
         print(f'check video: {v_file}')

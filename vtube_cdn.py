@@ -99,15 +99,15 @@ class CdnHTTPRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             print(f"[ERROR] Failed during range streaming {file_path}: {e}")
 
-def run_cdn_server(source_dir: str, port: int):
+def run_cdn_server(source_dir: str, ip: str, port: int):
     global cdn_web_root
     cdn_web_root = Path(source_dir)
     if not cdn_web_root.is_dir():
         print(f'Error: source dir is not exist: {cdn_web_root}')
         return
-    server_address = ('localhost', port)
+    server_address = (ip, port)
     httpd = ThreadingHTTPServer(server_address, CdnHTTPRequestHandler)
-    print(f"[INFO] vtube cdn server started at: http://localhost:{port}")
+    print(f"[INFO] vtube cdn server started at: http://{ip}:{port}")
     print("Press Ctrl+C to exit...")
     try:
         httpd.serve_forever()
@@ -120,7 +120,15 @@ def main():
         '--source',
         default=None,
         metavar='DIR',
-        help='Start local CDN server for video source. Default port is 5001.'
+        help='Start local CDN server for video source.'
+    )
+    parser.add_argument(
+        '--ip',
+        nargs='?',
+        type=str,
+        default='127.0.0.1',
+        metavar='IP',
+        help='Specify ip.'
     )
     parser.add_argument(
         '--port',
@@ -134,7 +142,7 @@ def main():
     args = parser.parse_args()
 
     if args.source:
-        run_cdn_server(args.source, args.port)
+        run_cdn_server(args.source, args.ip, args.port)
     else:
         parser.print_help()
 

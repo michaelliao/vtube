@@ -90,12 +90,12 @@ def open_browser(url: str):
     except Exception as e:
         print(f"[WARN] Open {url} failed: {e}")
 
-def run_dev_server(port: int):
-    server_address = ('localhost', port)
+def run_dev_server(ip: str, port: int):
+    server_address = (ip, port)
     httpd = ThreadingHTTPServer(server_address, DevHTTPRequestHandler)
-    print(f"[INFO] vtube dev server started at: http://localhost:{port}")
+    print(f"[INFO] vtube dev server started at: http://{ip}:{port}")
     print("Press Ctrl+C to exit...")
-    open_browser(f"http://localhost:{port}")
+    open_browser(f"http://{ip}:{port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -128,6 +128,14 @@ def main():
         help='Start dev server for preview. Default port is 5000.'
     )
     parser.add_argument(
+        '--ip',
+        nargs='?',
+        type=str,
+        default='127.0.0.1',
+        metavar='IP',
+        help='Specify ip.'
+    )
+    parser.add_argument(
         '--port',
         nargs='?',
         type=int,
@@ -141,7 +149,7 @@ def main():
     if args.build:
         build_static_site()
     elif args.serve:
-        run_dev_server(port=args.port)
+        run_dev_server(ip=args.ip, port=args.port)
     else:
         parser.print_help()
 
